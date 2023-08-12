@@ -3,7 +3,7 @@ from typing import List, Callable, Any
 # Assuming PyTorch's tensors are used, you should import torch as well
 # import torch
 
-class ParallelComputation:
+class ParallelMatrixOperator:
     """
     This class contains methods for performing parallel computations,
     specifically for matrix operations and kernel evaluations.
@@ -24,20 +24,20 @@ class ParallelComputation:
         return computed_kernel_matrices
 
     @staticmethod
-    def compute_matrix_vector_product(matrix: 'torch.Tensor', vector: 'torch.Tensor', device: str) -> 'torch.Tensor':
+    def mat_vec_mul (matrix: 'torch.Tensor', vector: 'torch.Tensor', device: str) -> 'torch.Tensor':
         """
         This method multiplies the given matrix with the vector.
         """
         return (matrix @ vector).to(device)
 
     @staticmethod
-    def compute_parallel_matrix_vector_product(matrix_list: List['torch.Tensor'],
+    def parallel_mat_vec_mul(matrix_list: List['torch.Tensor'],
                                                vector_list: List['torch.Tensor'], device: str) -> 'torch.Tensor':
         """
         This method performs matrix-vector multiplication operation in parallel.
         """
         with ThreadPoolExecutor() as executor:
-            products = [executor.submit(ParallelComputation.compute_matrix_vector_product, inputs[0], inputs[1], device)
+            products = [executor.submit(ParallelMatrixOperator.mat_vec_mul, inputs[0], inputs[1], device)
                         for inputs in zip(matrix_list, vector_list)]
 
         sum_of_products = sum(job.result() for job in products)
