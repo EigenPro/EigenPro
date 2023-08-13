@@ -5,7 +5,7 @@ from svd import top_q_eig
 
 class TestQSVD(unittest.TestCase):
 
-    def test_diag_case(self) -> None:
+    def test_diag_matrix(self) -> None:
         matrix = np.diag(np.array([1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]))
         q = 2
         eigenvals, eigenvecs, eigenvalq = top_q_eig(matrix, q)
@@ -21,7 +21,7 @@ class TestQSVD(unittest.TestCase):
         self.assertTrue(np.allclose(eigenvalq, expected_eigenvalq))
         self.assertTrue(np.allclose(expected_output_vecs, eigenvecs, atol=1e-03))
 
-    def test_nondiagonal_case(self) -> None:
+    def test_nondiagonal_matrix(self) -> None:
         matrix = np.array([
             [3., 1., 1., 1.],
             [1., 2., 1., 1.],
