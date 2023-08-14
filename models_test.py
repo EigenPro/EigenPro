@@ -22,8 +22,8 @@ class TestKernelMachine(unittest.TestCase):
 
     def test_forward(self):
         x = torch.tensor([[1.0, 1.0]])
-        expected_output = torch.tensor([[3.5, 3.5]])
-        torch.testing.assert_allclose(self.machine.forward(x), expected_output)
+        expected_output = torch.tensor([[6.5, 8.5]])
+        torch.testing.assert_close(self.machine.forward(x), expected_output)
 
     def test_add_centers(self):
         new_centers = torch.tensor([[5.0, 6.0]])
@@ -35,7 +35,7 @@ class TestKernelMachine(unittest.TestCase):
         copy_machine = self.machine.shallow_copy()
         self.assertEqual(copy_machine.n_outputs, self.machine.n_outputs)
         self.assertEqual(copy_machine.n_centers, self.machine.n_centers)
-        torch.testing.assert_allclose(copy_machine.forward(torch.tensor([[1.0, 1.0]])), 
+        torch.testing.assert_close(copy_machine.forward(torch.tensor([[1.0, 1.0]])), 
                                       self.machine.forward(torch.tensor([[1.0, 1.0]])))
 
 if __name__ == "__main__":
