@@ -8,7 +8,7 @@ class KernelMachine(object):
   """Kernel machine class for handling kernel methods.
   
   Provides methods for creating and manipulating kernel machines including 
-  adding/removing centers, computing the forward pass, and copying the current 
+  adding centers, computing the forward pass, and copying the current 
   instance.
 
   Attributes:
