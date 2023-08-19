@@ -18,7 +18,7 @@ class Device():
         elif strategy == "base":
             return tensor.to(self.devices[0])
 
-    def distribute_tensor_across_gpus(self, tensor: torch.Tensor) -> Llist[torch.Tensor]:
+    def distribute_tensor_across_gpus(self, tensor: torch.Tensor) -> list[torch.Tensor]:
         """Divides a tensor evenly across multiple GPUs."""
         tensor_segments = []
         segment_size = tensor.shape[0] // len(self.devices)
