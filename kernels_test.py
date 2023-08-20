@@ -1,6 +1,6 @@
 import unittest
 import torch
-from kernels import euclidean  # replace 'your_module' with the name of the module where 'euclidean' is defined
+from kernel import euclidean  # replace 'your_module' with the name of the module where 'euclidean' is defined
 
 class TestEuclidean(unittest.TestCase):
 
