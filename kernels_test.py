@@ -1,6 +1,6 @@
 import unittest
 import torch
-from kernel import euclidean  # replace 'your_module' with the name of the module where 'euclidean' is defined
+from kernel import euclidean
 
 class TestEuclidean(unittest.TestCase):
 
@@ -8,7 +8,9 @@ class TestEuclidean(unittest.TestCase):
         samples = torch.tensor([[1, 2], [3, 4]]).float()
         centers = torch.tensor([[1, 2], [2, 3]]).float()
         expected_output_sq = torch.tensor([[0., 2.], [8., 2.]])
-        expected_output_no_sq = torch.tensor([[0., torch.sqrt(torch.tensor(2.))], [torch.sqrt(torch.tensor(8.)), torch.sqrt(torch.tensor(2.))]])
+        expected_output_no_sq = torch.tensor(
+            [[0., torch.sqrt(torch.tensor(2.))],
+             [torch.sqrt(torch.tensor(8.)), torch.sqrt(torch.tensor(2.))]])
         result_sq = euclidean(samples, centers)
         result_no_sq = euclidean(samples, centers, squared=False)
         self.assertTrue(torch.allclose(result_sq, expected_output_sq))
