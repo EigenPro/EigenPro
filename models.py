@@ -5,8 +5,6 @@ import torch
 from concurrent.futures import ThreadPoolExecutor
 from device import Device
 
-import ipdb
-
 
 class KernelMachine:
     """Base class for KernelMachine."""

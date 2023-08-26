@@ -3,7 +3,6 @@ import torch
 from models import ShardedKernelMachine, PreallocatedKernelMachine
 from device import Device
 
-import ipdb
 
 def linear_kernel(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
     return x1.matmul(x2.t())
