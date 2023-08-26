@@ -1,6 +1,6 @@
 import unittest
 import torch
-from kernel import euclidean
+from kernels import euclidean
 
 class TestEuclidean(unittest.TestCase):
 
