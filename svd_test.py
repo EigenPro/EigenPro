@@ -27,7 +27,7 @@ class TestQSVD(unittest.TestCase):
             "Min eigenvalue mismatch"
         )
         self.assertTrue(
-            np.allclose(expected_vecs, eigen_system.vectors(), atol=1e-03),
+            np.allclose(expected_vecs, eigen_system.vectors, atol=1e-03),
             "Eigenvectors mismatch"
         )
 
@@ -61,7 +61,7 @@ class TestQSVD(unittest.TestCase):
             "Min eigenvalue mismatch"
         )
         self.assertTrue(
-            np.allclose(np.abs(expected_vecs), np.abs(eigen_system.vectors()), atol=1e-03),
+            np.allclose(np.abs(expected_vecs), np.abs(eigen_system.vectors), atol=1e-03),
             "Eigenvectors mismatch"
         )
 

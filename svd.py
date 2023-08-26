@@ -12,7 +12,8 @@ class EigenSystem:
 
     Attributes:
         _values (np.ndarray): Array of eigenvalues in descending order.
-        _vectors (np.ndarray): Array of eigenvectors corresponding to the eigenvalues.
+        _vectors (np.ndarray): Array of eigenvectors corresponding to the
+            eigenvalues.
         _num (int): Number of pairs of eigenvalues and eigenvectors.
     """
 
@@ -24,9 +25,11 @@ class EigenSystem:
             vectors (np.ndarray): Array of eigenvectors.
 
         Raises:
-            AssertionError: If the number of eigenvalues is less than the number of eigenvectors.
+            AssertionError: If the number of eigenvalues is less than the
+                number of eigenvectors.
         """
-        assert(len(values) == vectors.shape[1] or len(values) == 1 + vectors.shape[1])
+        assert(len(values) == vectors.shape[1] or
+               len(values) == 1 + vectors.shape[1])
         self._values = values
         self._vectors = vectors
         self._num = min(len(values), len(vectors))
@@ -50,6 +53,7 @@ class EigenSystem:
         n_vectors = len(self._vectors)
         return self._values[:n_vectors]
 
+    @property
     def vectors(self) -> np.ndarray:
         """Gets the eigenvectors of the eigensystem.
 
@@ -82,7 +86,8 @@ def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     assert matrix.shape[0] == matrix.shape[1], "Matrix should be square."
 
     n_sample = matrix.shape[0]
-    eigenvalues, eigenvectors = linalg.eigh(matrix, subset_by_index=[n_sample - q - 1, n_sample - 1])
+    eigenvalues, eigenvectors = linalg.eigh(
+        matrix, subset_by_index=[n_sample - q - 1, n_sample - 1])
     eigenvalues = eigenvalues[::-1]
     eigenvectors = eigenvectors[:, ::-1]
 
