@@ -19,7 +19,7 @@ class TestQSVD(unittest.TestCase):
         ]).T
 
         self.assertTrue(
-            np.allclose(eigen_system.values, expected_vals),
+            np.allclose(eigen_system.values, expected_vals[:-1]),
             "Eigenvalues mismatch"
         )
         self.assertTrue(
@@ -53,7 +53,7 @@ class TestQSVD(unittest.TestCase):
         expected_vecs /= np.linalg.norm(expected_vecs, axis=0)
 
         self.assertTrue(
-            np.allclose(eigen_system.values, expected_vals),
+            np.allclose(eigen_system.values, expected_vals[:-1]),
             "Eigenvalues mismatch"
         )
         self.assertTrue(

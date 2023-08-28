@@ -45,12 +45,12 @@ class EigenSystem:
 
     @property
     def values(self) -> np.ndarray:
-        """Gets the eigenvalues corresponding to the available eigenvectors.
+        """Gets the eigenvalues in descending order.
 
         Returns:
             np.ndarray: Array of eigenvalues.
         """
-        n_vectors = len(self._vectors)
+        n_vectors = self._vectors.shape[1]
         return self._values[:n_vectors]
 
     @property
