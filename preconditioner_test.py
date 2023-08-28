@@ -52,7 +52,7 @@ class TestPreconditionerAndKernelEigenSystem(unittest.TestCase):
         self.assertAlmostEqual(precon.learning_rate(1000), 3.25088, places=4)
         self.assertAlmostEqual(precon.learning_rate(10000), 3.51539, places=4)
         
-    def test_delta(self):
+    def test_delta_and_update(self):
         centers = torch.tensor([[1, 2, 3, 2],
                                 [3, 4, 1, 1],
                                 [-1, 0.5, 2.1, 0]],
@@ -73,16 +73,12 @@ class TestPreconditionerAndKernelEigenSystem(unittest.TestCase):
             delta, np.array([[0.079796],
                              [0.1015  ],
                              [0.018009]]), decimal=6)
-                
-    # def test_update(self):
-    #     centers = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
-    #     weights = torch.tensor([[1.0], [2.0]], dtype=torch.float32)
-    #     top_q_eig = 2
-    #     precon = pcd.Preconditioner(linear_kernel, centers, weights, top_q_eig)
         
-    #     delta = torch.tensor([[0.1], [0.2]], dtype=torch.float32)
-        
-    #     # Update the weights
-    #     precon.update(delta, 2)
+        # Verify updated weights
+        precon.update(delta, 2)
+        np.testing.assert_array_almost_equal(
+            precon._weights, np.array([[1.004339e+00],
+                                       [2.005519e+00],
+                                       [9.792851e-04]]), decimal=6)
 
 unittest.main(argv=[''], verbosity=2, exit=False)
