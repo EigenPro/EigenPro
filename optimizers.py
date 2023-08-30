@@ -1,0 +1,147 @@
+"""Optimizer class and utility functions for EigenPro iteration."""
+import torch
+
+import models
+import preconditioner as pcd
+
+
+def split_ids(ids: torch.Tensor, split_id: int) -> tuple[torch.Tensor, torch.Tensor]:
+    """Splits a tensor of ids into two based on a split id.
+
+    Args:
+        ids (torch.Tensor): A tensor of ids.
+        split_id (int): The id to split the ids tensor on.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor]: Two tensors, the first contains ids
+            less than or equal to split_id, the second contains ids greater than
+            split_id.
+    """
+    leq_ids = ids[ids <= split_id]
+    g_ids = ids[ids > split_id]
+    return leq_ids, g_ids
+
+
+def obtain_by_ids(batch_ids: torch.Tensor, *tensors: torch.Tensor
+                  ) -> tuple[torch.Tensor, ...]:
+    """Obtain elements in tensors by indices specified in batch_ids.
+
+    Args:
+        batch_ids (torch.Tensor): A tensor of indices to select from the
+        tensors. *tensors (torch.Tensor): A variable number of tensors to select
+        data from using batch_ids.
+
+    Returns:
+        Tuple[torch.Tensor, ...]: A tuple of tensors, each tensor contains
+        elements selected by batch_ids from the corresponding input tensor.
+    """
+    if not tensors:
+        raise ValueError("At least one tensor should be provided.")
+    
+    if len(batch_ids) == 0:
+        ret = tuple(torch.tensor([], dtype=tensor.dtype) for tensor in tensors)
+    else:
+    # Handle empty tensors separately to avoid "index out of bounds" error
+        ret = tuple(
+            tensor[batch_ids] if len(tensor) > 0 else torch.tensor([], dtype=tensor.dtype) 
+            for tensor in tensors
+        )
+    
+    if len(tensors) == 1:
+        return ret[0]
+    
+    return ret
+
+
+class EigenPro:
+    """EigenPro optimizer for kernel machines.
+
+    Args:
+        model (models.KernelMachine): A KernelMachine instance.
+        pcenters (torch.Tensor): Sampled centers for constructing EigenPro
+            preconditioner. Shape (n_centers, n_features).
+        threshold_index (int): An index used for thresholding.
+        eigensys (pcd.KernelEigenSystem): An eigen system used for
+            preconditioning.
+        top_q_eig (int): Number of top eigenvalues to consider.
+
+    Attributes:
+        model (models.KernelMachine): A KernelMachine instance.
+        precon (pcd.Preconditioner): Preconditioner instance.
+        _pcenters (torch.Tensor): Centers for preconditioner.
+        _threshold_index (int): An index used for thresholding.
+    """
+
+    def __init__(self,
+                 model: models.KernelMachine,
+                 pcenters: torch.Tensor,
+                 threshold_index: int,
+                 eigensys: pcd.KernelEigenSystem,
+                 top_q_eig: int) -> None:
+        """Initialize the EigenPro optimizer."""
+        self._model = model.shallow_copy()
+        self._pcenters = pcenters
+        self._threshold_index = threshold_index
+
+        pweights = torch.zeros([pcenters.shape[0], model.n_outputs])
+        self._precon = pcd.Preconditioner(model._kernel_fn, pcenters,
+                                          pweights, top_q_eig)
+        self._model.add_centers(pcenters, pweights)
+
+    @property
+    def model(self) -> models.KernelMachine:
+        """Get the active model (for training).
+
+        Returns:
+            models.KernelMachine: The active model.
+        """
+        return self._model
+
+    @property
+    def precon(self) -> pcd.Preconditioner:
+        """Get the preconditioner.
+
+        Returns:
+            pcd.Preconditioner: The preconditioner.
+        """
+        return self._precon
+
+    def step(self,
+             batch_x: torch.Tensor,
+             batch_y: torch.Tensor,
+             batch_ids: torch.Tensor) -> None:
+        """Perform a single optimization step.
+
+        Args:
+            batch_x (torch.Tensor): Batch of input features.
+            batch_y (torch.Tensor): Batch of target values.
+            batch_ids (torch.Tensor): Batch of sample indices.
+        """
+        in_ids, out_ids = split_ids(batch_ids, self._threshold_index)
+        batch_p = self.model.forward(batch_x)
+        grad = batch_p - batch_y
+        in_batch_g = obtain_by_ids(in_ids, grad)
+        out_batch_g = obtain_by_ids(out_ids, grad)
+
+        in_batch_size = len(in_batch_g)
+        if in_batch_size:
+            in_delta = -self.precon.scaled_learning_rate(
+                in_batch_size) * in_batch_g
+
+        out_batch_size = len(out_batch_g)
+        if out_batch_size:
+            out_delta = -self.precon.scaled_learning_rate(
+                out_batch_size) * out_batch_g
+
+        pdelta = self.precon.delta(batch_x, grad)
+
+        if in_batch_size:
+            self.model.update_by_index(in_ids, in_delta)
+        if out_batch_size:
+            self.model.add_centers(batch_x[out_ids], out_delta)
+
+        self.precon.update(pdelta, len(batch_ids))
+
+    def project(self) -> models.KernelMachine:
+        """Placeholder for the project method."""
+        pass
