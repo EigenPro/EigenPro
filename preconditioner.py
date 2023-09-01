@@ -1,24 +1,24 @@
-"""Preconditioner class and utility functions for EigenPro iteration.
+"""
+    Preconditioner class and utility functions for EigenPro iteration.
 """
 from typing import Callable
 import numpy as np
 import torch
-
 import svd
 
 
 class KernelEigenSystem(svd.EigenSystem):
     """Extends the EigenSystem class for EigenPro kernel preconditioning.
-    
+
     Attributes:
         _beta (float): (Approximate) maxinum of kernel norm.
         _scale (float): Scale factor.
     """
-    
+
     def __init__(self, eigensys: svd.EigenSystem, beta: float, scale: float
                  ) -> None:
         """Initialize an KernelEigenSystem instance.
-        
+
         Args:
             eigensys (svd.EigenSystem): An instance of EigenSystem to extend.
             beta (float): (Approximate) maxinum of kernel norm.
@@ -28,10 +28,9 @@ class KernelEigenSystem(svd.EigenSystem):
         self._beta = beta
         self._scale = scale
         # Overwrites base class `_vectors`
-        self._vectors = torch.tensor(self.vectors.copy(),
-                                     dtype=torch.float32)
-        self._normalize_ratios = torch.tensor(
-            self._scale * (1 - self.min_value / self.values) / self.values)
+        self._vectors = torch.as_tensor(eigensys.vectors, dtype=torch.float32)
+        self._normalized_ratios = torch.Tensor(
+            self._scale * (1 - eigensys.min_value / eigensys.values) / eigensys.values)
 
     @property
     def beta(self) -> float:
@@ -49,11 +48,10 @@ class KernelEigenSystem(svd.EigenSystem):
         Returns:
             np.ndarray: The computed ratios.
         """
-        return self._normalize_ratios
+        return self._normalized_ratios
 
 
-
-def top_eigensystem(samples: torch.Tensor, top_q: int,
+def top_eigensystem(samples: torch.Tensor, q: int,
                     kernel_fn: Callable[[torch.Tensor, torch.Tensor],
                                         torch.Tensor]
                     ) -> KernelEigenSystem:
@@ -61,7 +59,7 @@ def top_eigensystem(samples: torch.Tensor, top_q: int,
 
     Args:
         samples (torch.Tensor): A tensor containing the samples.
-        top_q (int): The number of top eigenvalues to consider from the
+        q (int): The number of top eigenvalues to consider from the
             eigenspectrum.
         kernel_fn (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): 
             A kernel function that computes the kernel matrix for two sets of
@@ -73,11 +71,11 @@ def top_eigensystem(samples: torch.Tensor, top_q: int,
     """
     n_sample = samples.shape[0]
     kernel_mat = kernel_fn(samples, samples).cpu().data.numpy()
-    eigensys = svd.top_q_eig(kernel_mat, top_q)
+    eigensys = svd.top_q_eig(kernel_mat, q)
+    
     # Obtains an upper bound for ||k(x, \cdot)||.
     beta = max(np.diag(kernel_mat))
 
-    n_samples = samples.shape[0]
     return KernelEigenSystem(eigensys, beta, 1 / n_sample)
 
 
@@ -93,35 +91,36 @@ class Preconditioner:
             to the centers.
         top_q_eig: Construct top q eigensystem for preconditioning.
     """
-    
-    def __init__(self, 
-                 kernel_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], 
-                 centers: torch.Tensor, 
-                 weights: torch.Tensor, 
+
+    def __init__(self,
+                 kernel_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+                 centers: torch.Tensor,
+                 weights: torch.Tensor,
                  top_q_eig: int) -> None:
         """Initializes the Preconditioner."""
         self._kernel_fn = kernel_fn
         self._centers = centers
         self._weights = weights
         self._eigensys = top_eigensystem(centers, top_q_eig, kernel_fn)
-        
+
+
     @property
     def critical_batch_size(self) -> int:
         """Computes and returns the critical batch size."""
         return int(self._eigensys.beta / self._eigensys.min_value)
-    
+
     def learning_rate(self, batch_size: int) -> float:
         """Computes and returns the learning rate based on the batch size."""
         if batch_size < self.critical_batch_size:
             return batch_size / self._eigensys.beta / 2
         else:
-            return batch_size / (self._eigensys.beta + 
+            return batch_size / (self._eigensys.beta +
                                  (batch_size - 1) * self._eigensys.min_value)
-            
+
     def scaled_learning_rate(self, batch_size: int) -> float:
         """Computes and returns the scaled learning rate."""
         return 2 / batch_size * self.learning_rate(batch_size)
-    
+
     def delta(self, batch_x: torch.Tensor, grad: torch.Tensor) -> torch.Tensor:
         """Computes weight delta for preconditioner centers.
         Args:
@@ -139,15 +138,14 @@ class Preconditioner:
         kg = kernel_mat @ grad
         eigenvectors = self._eigensys.vectors
         normalized_ratios = self._eigensys.normalized_ratios
-        
+
         # of shape [q, n_outputs]
         vtkg = eigenvectors.T @ kg
         vdvtkg = eigenvectors @ (normalized_ratios * vtkg)
-        
+
         return vdvtkg
-    
+
     def update(self, delta: torch.Tensor, batch_size: int) -> None:
         """Updates the weight parameters."""
         lr = self.scaled_learning_rate(batch_size)
         self._weights.add_(lr * delta)
-        

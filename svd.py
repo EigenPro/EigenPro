@@ -34,6 +34,17 @@ class EigenSystem:
         self._vectors = vectors
         self._num = min(len(values), len(vectors))
 
+
+    @property
+    def size(self) -> int:
+        """Gets the size of the eigensystem
+        
+        Returns:
+            int: The number of eigenvalues and eigenvectors
+        """
+        return len(self._values) - 1
+
+
     @property
     def min_value(self) -> float:
         """Gets the smallest eigenvalue of the eigensystem.
@@ -50,8 +61,7 @@ class EigenSystem:
         Returns:
             np.ndarray: Array of eigenvalues.
         """
-        n_vectors = self._vectors.shape[1]
-        return self._values[:n_vectors]
+        return self._values[:-1]
 
     @property
     def vectors(self) -> np.ndarray:
@@ -60,7 +70,7 @@ class EigenSystem:
         Returns:
             np.ndarray: Array of eigenvectors.
         """
-        return self._vectors
+        return self._vectors[:,:self.size]
 
 def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     """Finds the top `q` eigenvalues and eigenvectors of a matrix.
@@ -88,9 +98,7 @@ def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     n_sample = matrix.shape[0]
     eigenvalues, eigenvectors = linalg.eigh(
         matrix, subset_by_index=[n_sample - q - 1, n_sample - 1])
-    eigenvalues = eigenvalues[::-1]
-    eigenvectors = eigenvectors[:, ::-1]
+    eigenvalues = np.flip(eigenvalues).copy()
+    eigenvectors = np.fliplr(eigenvectors).copy()
 
-    return EigenSystem(eigenvalues[:q+1], eigenvectors[:, :q])
-
-
+    return EigenSystem(eigenvalues, eigenvectors)
