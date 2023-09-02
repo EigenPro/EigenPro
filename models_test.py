@@ -32,7 +32,7 @@ class TestKernelMachine(unittest.TestCase):
 
         centers = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5., 6.0]])
         weights = torch.tensor([[1.0, 0.5], [0.5, 1.0], [0.5, 0.5]])
-        self.km_smaple = PreallocatedKernelMachine(self.kernel_fn, self.n_outputs, centers, weights=weights)
+        self.km_sample = PreallocatedKernelMachine(self.kernel_fn, self.n_outputs, centers, weights=weights)
 
     def are_tensor_lists_equal(self,list1, list2):
         if len(list1) != len(list2):
@@ -43,21 +43,21 @@ class TestKernelMachine(unittest.TestCase):
         return True
     ####checking PreallocatedKernelMachine
     def test_n_outputs(self):
-        self.assertEqual(self.km_smaple.n_outputs, self.n_outputs)
+        self.assertEqual(self.km_sample.n_outputs, self.n_outputs)
 
     def test_n_centers(self):
-        self.assertEqual(self.km_smaple.n_centers, 3)
+        self.assertEqual(self.km_sample.n_centers, 3)
 
     def test_forward(self):
         x = torch.tensor([[1.0, 1.0]])
         expected_output = torch.tensor([[12., 14.]])
-        torch.testing.assert_close(self.km_smaple.forward(x), expected_output)
+        torch.testing.assert_close(self.km_sample.forward(x), expected_output)
 
     def test_add_centers(self):
         new_centers = torch.tensor([[5.0, 6.0]])
         new_weights = torch.tensor([[0.5, 0.5]])
-        self.km_smaple.add_centers(new_centers, new_weights)
-        self.assertEqual(self.km_smaple.n_centers, 4)
+        self.km_sample.add_centers(new_centers, new_weights)
+        self.assertEqual(self.km_sample.n_centers, 4)
 
     ####checking ShardedKernelMachine
     def test_forward_sharded(self):
