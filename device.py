@@ -9,7 +9,8 @@ class Device():
         """Initializes the Device object with available devices."""
         self.devices = devices
 
-    def __call__(self, tensor: torch.Tensor, strategy: str = "broadcast") -> Union[torch.Tensor, list[torch.Tensor]]:
+    def __call__(self, tensor: torch.Tensor, strategy: str = "broadcast"
+                 ) -> Union[torch.Tensor, list[torch.Tensor]]:
         """Applies a distribution strategy to a tensor."""
         if strategy == "divide_to_gpu":
             return self.distribute_tensor_across_gpus(tensor)
@@ -18,13 +19,15 @@ class Device():
         elif strategy == "base":
             return tensor.to(self.devices[0])
 
-    def distribute_tensor_across_gpus(self, tensor: torch.Tensor) -> list[torch.Tensor]:
+    def distribute_tensor_across_gpus(self, tensor: torch.Tensor
+                                      ) -> list[torch.Tensor]:
         """Divides a tensor evenly across multiple GPUs."""
         tensor_segments = []
         segment_size = tensor.shape[0] // len(self.devices)
         for i in range(len(self.devices)):
             if i < len(self.devices) - 1:
-                tensor_slice = tensor[i * segment_size: (i + 1) * segment_size, :]
+                tensor_slice = tensor[
+                    i * segment_size: (i + 1) * segment_size, :]
             else:
                 tensor_slice = tensor[i * segment_size:, :]
             tensor_segments.append(tensor_slice.to(self.devices[i]))
@@ -32,9 +35,10 @@ class Device():
 
     @staticmethod
     def create() -> 'Device':
-        """Creates a Device object representing all available GPUs or CPU if no GPUs are available."""
+        """Creates a Device instance for all GPUs or CPU if there is no GPU."""
         if torch.cuda.is_available():
-            device_list = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+            device_list = [torch.device(f'cuda:{i}')
+                           for i in range(torch.cuda.device_count())]
         else:
             device_list = [torch.device('cpu')]
         return Device(device_list)

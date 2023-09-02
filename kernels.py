@@ -135,8 +135,10 @@ def ntk_relu_unit_sphere(X: torch.Tensor, Z: torch.Tensor,
 
     Args:
         X (torch.Tensor): The first input tensor.
-        Z (torch.Tensor): The second input tensor. If None, it will be set to X.
-        depth (int, optional): The number of layers in the network. Defaults to 1.
+        Z (torch.Tensor): The second input tensor. If None, it will be set to
+            X.
+        depth (int, optional): The number of layers in the network. Defaults to
+            1.
         bias (float, optional): The bias term to be added. Defaults to 0.
 
     Returns:

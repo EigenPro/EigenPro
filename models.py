@@ -21,9 +21,77 @@ class PreallocatedKernelMachine(KernelMachine):
 
     Attributes:
       n_outputs: The number of outputs.
-      _kernel_fn: A callable that computes the kernel function.
-      _center_blocks: A list of tensors of kernel centers.
-      _weight_blocks: A list of trainable tensors of weights.
+      centers: A tensor of kernel centers of shape [n_centers, n_features].
+      weights: An optional tensor of weights of shape [n_centers, n_outputs].
+    """
+    self._kernel_fn = kernel_fn
+    self._n_outputs = n_outputs
+    self._center_blocks = []
+    self._weight_blocks = []
+    _ = self.add_centers(centers, weights)
+  
+  @property
+  def n_outputs(self) -> int:
+    """Returns the number of outputs."""
+    return self._n_outputs
+  
+  @property
+  def n_centers(self) -> int:
+    """Returns the number of centers."""
+    count = 0
+    for center_block in self._center_blocks:
+      count += center_block.size(dim=0)
+    return count
+  
+  @property
+  def weights(self) -> torch.Tensor:
+    """Returns all weights as a single Tensor."""
+    return torch.cat(self._weight_blocks, dim=0)
+  
+  def update_by_index(self, indices: torch.Tensor,
+                      delta: torch.Tensor) -> None:
+    """Update the model weights by index.
+    
+    Here we assume that only the first block is trainable.
+    
+    Args:
+      indices: Tensor of 1-D indices to select rows of weights.
+      delta: Tensor of weight update of shape [n_indices, n_outputs].
+    """
+    self._weight_blocks[0][indices] += delta
+    return
+  
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+    """Forward pass of the kernel model.
+    
+    Args:
+      x: Input mini-batch tensor of shape [batch_size, n_features].
+
+    Returns:
+      Output tensor of shape [batch_size, n_outputs].
+    """
+    # Center matrix of shape [n_centers, n_features].
+    centers = torch.cat(self._center_blocks, dim=0)
+    # Kernel matrix of shape [batch_size, n_centers].
+    kernel_mat = self._kernel_fn(x, centers)
+    # Weight matrix of shape [n_centers, n_outputs].
+    weights = torch.cat(self._weight_blocks, dim=0)
+    # Output of shape [batch_size, n_outputs]
+    output = kernel_mat.matmul(weights)
+    return output
+  
+  def add_centers(self, 
+                  centers: torch.Tensor,
+                  weights: Optional[torch.Tensor] = None) -> torch.Tensor:
+    """Adds new centers and weights.
+    
+    Args:
+      centers: Kernel centers of shape [n_centers, n_features].
+      weights: Weight parameters corresponding to the centers of shape 
+               [n_centers, n_output].
+
+    Returns:
+      center_weights: Weight parameters corresponding to the added centers.
     """
 
     def __init__(self,

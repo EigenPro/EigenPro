@@ -12,7 +12,8 @@ class EigenSystem:
 
     Attributes:
         _values (np.ndarray): Array of eigenvalues in descending order.
-        _vectors (np.ndarray): Array of eigenvectors corresponding to the eigenvalues.
+        _vectors (np.ndarray): Array of eigenvectors corresponding to the
+            eigenvalues.
         _num (int): Number of pairs of eigenvalues and eigenvectors.
     """
 
@@ -24,12 +25,15 @@ class EigenSystem:
             vectors (np.ndarray): Array of eigenvectors.
 
         Raises:
-            AssertionError: If the number of eigenvalues is less than the number of eigenvectors.
+            AssertionError: If the number of eigenvalues is less than the
+                number of eigenvectors.
         """
-        assert(len(values) == vectors.shape[1] or len(values) == 1 + vectors.shape[1])
+        assert(len(values) == vectors.shape[1] or
+               len(values) == 1 + vectors.shape[1])
         self._values = values
         self._vectors = vectors
         self._num = min(len(values), len(vectors))
+
 
     @property
     def min_value(self) -> float:
@@ -41,36 +45,45 @@ class EigenSystem:
         return self._values[-1]
 
     @property
+    def size(self) -> int:
+        """Gets the size of the eigensystem.
+        
+        Returns:
+            int: The number of eigenvalues and eigenvectors.
+        """
+        return len(self._values) - 1
+
+    @property
     def values(self) -> np.ndarray:
-        """Gets the eigenvalues corresponding to the available eigenvectors.
+        """Gets the eigenvalues in descending order.
 
         Returns:
             np.ndarray: Array of eigenvalues.
         """
-        n_vectors = len(self._vectors)
-        return self._values[:n_vectors]
+        return self._values[:-1]
 
+    @property
     def vectors(self) -> np.ndarray:
         """Gets the eigenvectors of the eigensystem.
 
         Returns:
             np.ndarray: Array of eigenvectors.
         """
-        return self._vectors
+        return self._vectors[:,:self.size]
 
 def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     """Finds the top `q` eigenvalues and eigenvectors of a matrix.
 
-    This function returns the top `q+1` eigenvalues but only the top
-    `q` eigenvectors.
+    This function returns the top `q + 1` eigenvalues but only the top `q`
+    eigenvectors.
 
     Args:
         matrix (np.ndarray): Symmetric matrix of shape (n, n).
         q (int): Number of top eigenvalues/eigenvectors to retrieve.
 
     Returns:
-        EigenSystem: EigenSystem object with top `q+1` eigenvalues and top `q`
-            corresponding eigenvectors.
+        EigenSystem: EigenSystem object with top `q + 1` eigenvalues and top
+            `q` corresponding eigenvectors.
 
     Raises:
         AssertionError: If the matrix is not square.
@@ -82,10 +95,9 @@ def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     assert matrix.shape[0] == matrix.shape[1], "Matrix should be square."
 
     n_sample = matrix.shape[0]
-    eigenvalues, eigenvectors = linalg.eigh(matrix, subset_by_index=[n_sample - q - 1, n_sample - 1])
-    eigenvalues = eigenvalues[::-1]
-    eigenvectors = eigenvectors[:, ::-1]
+    eigenvalues, eigenvectors = linalg.eigh(
+        matrix, subset_by_index=[n_sample - q - 1, n_sample - 1])
+    eigenvalues = np.flip(eigenvalues).copy()
+    eigenvectors = np.fliplr(eigenvectors).copy()
 
-    return EigenSystem(eigenvalues[:q+1], eigenvectors[:, :q])
-
-
+    return EigenSystem(eigenvalues, eigenvectors)
