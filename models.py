@@ -196,16 +196,20 @@ class BlockKernelMachine(KernelMachine):
             copy.add_centers(center_block, weight_block)
         return copy
 
+
 class ShardedKernelMachine(KernelMachine):
     """Kernel machine that shards its computation across multiple devices."""
+
     def __init__(self, kms: List[PreallocatedKernelMachine]):
         self.shard_kms = kms
         self.n_machines = len(kms)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         with ThreadPoolExecutor() as executor:
             kernel_matrices = [executor.submit(self.shard_kms[i].forward, x)
                                for i in range(self.n_machines)]
         return [k.result() for k in kernel_matrices]
+
     def add_centers(self, centers_list: torch.Tensor) -> None:
         with ThreadPoolExecutor() as executor:
             _ = [executor.submit(self.shard_kms[i].add_centers, centers_list[i]) for
