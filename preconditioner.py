@@ -12,7 +12,6 @@ class KernelEigenSystem(svd.EigenSystem):
 
     Attributes:
         _beta (float): (Approximate) maxinum of kernel norm.
-        _scale (float): Scale factor.
 
     Attributes from EigenSystem:
         min_value (float): Smallest eigenvalue of the eigensystem.
@@ -21,27 +20,22 @@ class KernelEigenSystem(svd.EigenSystem):
         vectors (np.ndarray): The eigenvectors in the same order of values.
     """
 
-    def __init__(self, eigensys: svd.EigenSystem, beta: float, scale: float
-                 ) -> None:
+    def __init__(self, eigensys: svd.EigenSystem, beta: float) -> None:
         """Initialize an KernelEigenSystem instance.
 
         Args:
             eigensys (svd.EigenSystem): An instance of EigenSystem to extend.
             beta (float): (Approximate) maxinum of kernel norm.
-            scale (float): The scale factor.
         """
         # Creates an Adapter instance (KernelEigenSystem) from an EigenSystem
         # instance. This Adapter instance has all attributes and methods of the
         # given EigenSystem instance.
         self.__dict__ = eigensys.__dict__
         self._beta = beta
-        # TODO(s1van): Move scale factor into EigenSystem by directly
-        # normalizing the eigenvalues.
-        self._scale = scale
         # Overwrites base class `_vectors`
         self._vectors = torch.as_tensor(eigensys.vectors, dtype=torch.float32)
         self._normalized_ratios = torch.Tensor(
-            self._scale * (1 - eigensys.min_value / eigensys.values) / eigensys.values)
+            (1 - eigensys.min_value / eigensys.values) / eigensys.values)
 
     @property
     def beta(self) -> float:
@@ -82,12 +76,13 @@ def top_eigensystem(samples: torch.Tensor, q: int,
     """
     n_sample = samples.shape[0]
     kernel_mat = kernel_fn(samples, samples).cpu().data.numpy()
-    eigensys = svd.top_q_eig(kernel_mat, q)
+    # Obtains eigensystem for the normalized kernel matrix.
+    eigensys = svd.top_q_eig(kernel_mat / n_sample, q)
     
     # Obtains an upper bound for ||k(x, \cdot)||.
     beta = max(np.diag(kernel_mat))
 
-    return KernelEigenSystem(eigensys, beta, 1 / n_sample)
+    return KernelEigenSystem(eigensys, beta)
 
 
 class Preconditioner:

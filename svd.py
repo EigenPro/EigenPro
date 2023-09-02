@@ -74,16 +74,16 @@ class EigenSystem:
 def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     """Finds the top `q` eigenvalues and eigenvectors of a matrix.
 
-    This function returns the top `q+1` eigenvalues but only the top
-    `q` eigenvectors.
+    This function returns the top `q + 1` eigenvalues but only the top `q`
+    eigenvectors.
 
     Args:
         matrix (np.ndarray): Symmetric matrix of shape (n, n).
         q (int): Number of top eigenvalues/eigenvectors to retrieve.
 
     Returns:
-        EigenSystem: EigenSystem object with top `q+1` eigenvalues and top `q`
-            corresponding eigenvectors.
+        EigenSystem: EigenSystem object with top `q + 1` eigenvalues and top
+            `q` corresponding eigenvectors.
 
     Raises:
         AssertionError: If the matrix is not square.
