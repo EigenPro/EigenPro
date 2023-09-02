@@ -44,11 +44,29 @@ class KernelMachine(object):
   
   @property
   def n_centers(self) -> int:
-    """Return the number of centers."""
+    """Returns the number of centers."""
     count = 0
     for center_block in self._center_blocks:
       count += center_block.size(dim=0)
     return count
+  
+  @property
+  def weights(self) -> torch.Tensor:
+    """Returns all weights as a single Tensor."""
+    return torch.cat(self._weight_blocks, dim=0)
+  
+  def update_by_index(self, indices: torch.Tensor,
+                      delta: torch.Tensor) -> None:
+    """Update the model weights by index.
+    
+    Here we assume that only the first block is trainable.
+    
+    Args:
+      indices: Tensor of 1-D indices to select rows of weights.
+      delta: Tensor of weight update of shape [n_indices, n_outputs].
+    """
+    self._weight_blocks[0][indices] += delta
+    return
   
   def forward(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass of the kernel model.

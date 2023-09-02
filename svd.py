@@ -34,6 +34,7 @@ class EigenSystem:
         self._vectors = vectors
         self._num = min(len(values), len(vectors))
 
+
     @property
     def min_value(self) -> float:
         """Gets the smallest eigenvalue of the eigensystem.
@@ -44,14 +45,22 @@ class EigenSystem:
         return self._values[-1]
 
     @property
+    def size(self) -> int:
+        """Gets the size of the eigensystem.
+        
+        Returns:
+            int: The number of eigenvalues and eigenvectors.
+        """
+        return len(self._values) - 1
+
+    @property
     def values(self) -> np.ndarray:
-        """Gets the eigenvalues corresponding to the available eigenvectors.
+        """Gets the eigenvalues in descending order.
 
         Returns:
             np.ndarray: Array of eigenvalues.
         """
-        n_vectors = len(self._vectors)
-        return self._values[:n_vectors]
+        return self._values[:-1]
 
     @property
     def vectors(self) -> np.ndarray:
@@ -60,21 +69,21 @@ class EigenSystem:
         Returns:
             np.ndarray: Array of eigenvectors.
         """
-        return self._vectors
+        return self._vectors[:,:self.size]
 
 def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     """Finds the top `q` eigenvalues and eigenvectors of a matrix.
 
-    This function returns the top `q+1` eigenvalues but only the top
-    `q` eigenvectors.
+    This function returns the top `q + 1` eigenvalues but only the top `q`
+    eigenvectors.
 
     Args:
         matrix (np.ndarray): Symmetric matrix of shape (n, n).
         q (int): Number of top eigenvalues/eigenvectors to retrieve.
 
     Returns:
-        EigenSystem: EigenSystem object with top `q+1` eigenvalues and top `q`
-            corresponding eigenvectors.
+        EigenSystem: EigenSystem object with top `q + 1` eigenvalues and top
+            `q` corresponding eigenvectors.
 
     Raises:
         AssertionError: If the matrix is not square.
@@ -88,9 +97,7 @@ def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     n_sample = matrix.shape[0]
     eigenvalues, eigenvectors = linalg.eigh(
         matrix, subset_by_index=[n_sample - q - 1, n_sample - 1])
-    eigenvalues = eigenvalues[::-1]
-    eigenvectors = eigenvectors[:, ::-1]
+    eigenvalues = np.flip(eigenvalues).copy()
+    eigenvectors = np.fliplr(eigenvectors).copy()
 
-    return EigenSystem(eigenvalues[:q+1], eigenvectors[:, :q])
-
-
+    return EigenSystem(eigenvalues, eigenvectors)
