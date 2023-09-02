@@ -36,16 +36,6 @@ class EigenSystem:
 
 
     @property
-    def size(self) -> int:
-        """Gets the size of the eigensystem
-        
-        Returns:
-            int: The number of eigenvalues and eigenvectors
-        """
-        return len(self._values) - 1
-
-
-    @property
     def min_value(self) -> float:
         """Gets the smallest eigenvalue of the eigensystem.
 
@@ -53,6 +43,15 @@ class EigenSystem:
             float: The smallest eigenvalue.
         """
         return self._values[-1]
+
+    @property
+    def size(self) -> int:
+        """Gets the size of the eigensystem.
+        
+        Returns:
+            int: The number of eigenvalues and eigenvectors.
+        """
+        return len(self._values) - 1
 
     @property
     def values(self) -> np.ndarray:

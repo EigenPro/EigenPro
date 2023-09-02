@@ -13,6 +13,12 @@ class KernelEigenSystem(svd.EigenSystem):
     Attributes:
         _beta (float): (Approximate) maxinum of kernel norm.
         _scale (float): Scale factor.
+
+    Attributes from EigenSystem:
+        min_value (float): Smallest eigenvalue of the eigensystem.
+        size (int): Size of the eigensystem.
+        values (np.ndarray): The eigenvalues in descending order.
+        vectors (np.ndarray): The eigenvectors in the same order of values.
     """
 
     def __init__(self, eigensys: svd.EigenSystem, beta: float, scale: float
@@ -24,6 +30,9 @@ class KernelEigenSystem(svd.EigenSystem):
             beta (float): (Approximate) maxinum of kernel norm.
             scale (float): The scale factor.
         """
+        # Creates an Adapter instance (KernelEigenSystem) from an EigenSystem
+        # instance. This Adapter instance has all attributes and methods of the
+        # given EigenSystem instance.
         self.__dict__ = eigensys.__dict__
         self._beta = beta
         # TODO(s1van): Move scale factor into EigenSystem by directly
