@@ -80,7 +80,7 @@ class TestTensorFunctions(unittest.TestCase):
         batch_ids = torch.tensor([0, 1, 2])
         res1 = opt.obtain_by_ids(batch_ids, t1)
         self.assertTrue(torch.equal(res1, torch.tensor([1, 2, 3])))
-        
+
     def setUp(self):
         self.kernel_fn = linear_kernel_fn
         self.n_outputs = 2
@@ -100,10 +100,13 @@ class TestTensorFunctions(unittest.TestCase):
         self.eigensys = pcd.KernelEigenSystem(self.eigensys, 1.0, 1.0)
         
         self.top_q_eig = 1
-        self.optimizer = opt.EigenPro(
-            self.model, self.centers, self.threshold_index, self.eigensys,
-            self.top_q_eig)
-        
+        self.pweights = torch.zeros([self.centers.shape[0],
+                                     self.model.n_outputs])
+        self.precon = pcd.Preconditioner(self.model._kernel_fn, self.centers,
+                                         self.pweights, self.top_q_eig)
+        self.optimizer = opt.EigenPro(self.model, self.threshold_index,
+                                      self.precon)
+
     def test_init(self):
         self.assertIsNotNone(self.optimizer.model)
         self.assertIsNotNone(self.optimizer.precon)
@@ -112,7 +115,7 @@ class TestTensorFunctions(unittest.TestCase):
         batch_x = torch.tensor([[1.0, 1.0], [2.0, 2.0]], dtype=torch.float32)
         batch_y = torch.tensor([[2.0, 3.0], [3.0, 4.0]], dtype=torch.float32)
         batch_ids = torch.tensor([0, 1], dtype=torch.int64)
-        
+
         np.testing.assert_array_almost_equal(self.model.weights,
                                              np.array([[0.0, 0.0],
                                                        [0.0, 0.0]]), decimal=6)
@@ -120,7 +123,8 @@ class TestTensorFunctions(unittest.TestCase):
         self.optimizer.step(batch_x, batch_y, batch_ids)        
         np.testing.assert_array_almost_equal(self.model.weights,
                                              np.array([[0.08, 0.12],
-                                                       [0.12, 0.16]]), decimal=6)
+                                                       [0.12, 0.16]]),
+                                             decimal=6)
 
 # Running the test
 if __name__ == '__main__':

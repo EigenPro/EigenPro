@@ -26,6 +26,8 @@ class KernelEigenSystem(svd.EigenSystem):
         """
         self.__dict__ = eigensys.__dict__
         self._beta = beta
+        # TODO(s1van): Move scale factor into EigenSystem by directly
+        # normalizing the eigenvalues.
         self._scale = scale
         # Overwrites base class `_vectors`
         self._vectors = torch.as_tensor(eigensys.vectors, dtype=torch.float32)
@@ -103,11 +105,21 @@ class Preconditioner:
         self._weights = weights
         self._eigensys = top_eigensystem(centers, top_q_eig, kernel_fn)
 
+    
+    @property
+    def centers(self) -> torch.Tensor:
+        """Returns centers for constructing the preconditioner."""
+        return self._centers
 
     @property
     def critical_batch_size(self) -> int:
         """Computes and returns the critical batch size."""
         return int(self._eigensys.beta / self._eigensys.min_value)
+    
+    @property
+    def weights(self) -> torch.Tensor:
+        """Returns weights corresponding to the centers."""
+        return self._weights
 
     def learning_rate(self, batch_size: int) -> float:
         """Computes and returns the learning rate based on the batch size."""

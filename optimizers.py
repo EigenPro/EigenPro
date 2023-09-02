@@ -58,39 +58,30 @@ class EigenPro:
 
     Args:
         model (models.KernelMachine): A KernelMachine instance.
-        pcenters (torch.Tensor): Sampled centers for constructing EigenPro
-            preconditioner. Shape (n_centers, n_features).
         threshold_index (int): An index used for thresholding.
-        eigensys (pcd.KernelEigenSystem): An eigen system used for
-            preconditioning.
-        top_q_eig (int): Number of top eigenvalues to consider.
+        precon (pcd.Preconditioner): Preconditioner instance that contains a
+            top kernel eigensystem for correcting the gradient.
 
     Attributes:
         model (models.KernelMachine): A KernelMachine instance.
-        precon (pcd.Preconditioner): Preconditioner instance.
-        _pcenters (torch.Tensor): Centers for preconditioner.
+        precon (pcd.Preconditioner): A Preconditioner instance.
         _threshold_index (int): An index used for thresholding.
     """
 
     def __init__(self,
                  model: models.KernelMachine,
-                 pcenters: torch.Tensor,
                  threshold_index: int,
-                 eigensys: pcd.KernelEigenSystem,
-                 top_q_eig: int) -> None:
+                 precon: pcd.Preconditioner) -> None:
         """Initialize the EigenPro optimizer."""
         self._model = model.shallow_copy()
-        self._pcenters = pcenters
         self._threshold_index = threshold_index
 
-        pweights = torch.zeros([pcenters.shape[0], model.n_outputs])
-        self._precon = pcd.Preconditioner(model._kernel_fn, pcenters,
-                                          pweights, top_q_eig)
-        self._model.add_centers(pcenters, pweights)
+        self._precon = precon
+        self._model.add_centers(precon.centers, precon.weights)
 
     @property
     def model(self) -> models.KernelMachine:
-        """Get the active model (for training).
+        """Gets the active model (for training).
 
         Returns:
             models.KernelMachine: The active model.
@@ -99,7 +90,7 @@ class EigenPro:
 
     @property
     def precon(self) -> pcd.Preconditioner:
-        """Get the preconditioner.
+        """Gets the preconditioner.
 
         Returns:
             pcd.Preconditioner: The preconditioner.
@@ -110,7 +101,7 @@ class EigenPro:
              batch_x: torch.Tensor,
              batch_y: torch.Tensor,
              batch_ids: torch.Tensor) -> None:
-        """Perform a single optimization step.
+        """Performs a single optimization step.
 
         Args:
             batch_x (torch.Tensor): Batch of input features.
@@ -141,7 +132,3 @@ class EigenPro:
             self.model.add_centers(batch_x[out_ids], out_delta)
 
         self.precon.update(pdelta, len(batch_ids))
-
-    def project(self) -> models.KernelMachine:
-        """Placeholder for the project method."""
-        pass
