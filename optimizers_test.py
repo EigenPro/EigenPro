@@ -88,8 +88,8 @@ class TestTensorFunctions(unittest.TestCase):
                                      [3.0, 4.0]], dtype=torch.float32)
         self.weights = torch.tensor([[0.0, 0.0],
                                      [0.0, 0.0]], dtype=torch.float32)
-        self.model = models.KernelMachine(self.kernel_fn, self.n_outputs,
-                                          self.centers, self.weights)
+        self.model = models.BlockKernelMachine(self.kernel_fn, self.n_outputs,
+                                               self.centers, self.weights)
         self.threshold_index = 1
 
         # Creating a mock EigenSystem
@@ -97,7 +97,7 @@ class TestTensorFunctions(unittest.TestCase):
         self.eigenvectors = np.asarray([[1.0, 0.0],
                                        [0.0, 1.0]], dtype=np.float32)
         self.eigensys = svd.EigenSystem(self.eigenvalues, self.eigenvectors)
-        self.eigensys = pcd.KernelEigenSystem(self.eigensys, 1.0, 1.0)
+        self.eigensys = pcd.KernelEigenSystem(self.eigensys, 1.0)
         
         self.top_q_eig = 1
         self.pweights = torch.zeros([self.centers.shape[0],

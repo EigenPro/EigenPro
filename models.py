@@ -54,7 +54,7 @@ class KernelMachine:
     raise NotImplementedError
   
   def update_by_index(self, indices: torch.Tensor,
-                    delta: torch.Tensor) -> None:
+                      delta: torch.Tensor) -> None:
     """Update the model weights by index.
     
     Args:
@@ -158,11 +158,19 @@ class PreallocatedKernelMachine(KernelMachine):
     self.used_capacity += centers.shape[0]
 
     if self.used_capacity > 2 * self.original_size:
-        self._centers[self.used_capacity:, :] = 0
-        self._weights[self.used_capacity:, :] = 0
-        self.used_capacity = self.original_size
-
+      raise ValueError(f"Out of capacity for new centers: "
+                       f"{self.used_capacity=} > 2 * ({self.original_size=})")
     return weights
+  
+  def update_by_index(self, indices: torch.Tensor,
+                      delta: torch.Tensor) -> None:
+    """Update the model weights by index.
+    
+    Args:
+      indices: Tensor of 1-D indices to select rows of weights.
+      delta: Tensor of weight update of shape [n_indices, n_outputs].
+    """
+    self._weights[indices] += delta
 
 
 class BlockKernelMachine(KernelMachine):
@@ -228,7 +236,6 @@ class BlockKernelMachine(KernelMachine):
       delta: Tensor of weight update of shape [n_indices, n_outputs].
     """
     self._weight_blocks[0][indices] += delta
-    return
   
   def forward(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass of the kernel model.
