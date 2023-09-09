@@ -1,6 +1,6 @@
 import unittest
 import torch
-from models import ShardedKernelMachine, PreallocatedKernelMachine
+from models import BlockKernelMachine, ShardedKernelMachine, PreallocatedKernelMachine
 from device import Device
 
 
@@ -14,7 +14,7 @@ class TestKernelMachine(unittest.TestCase):
         self.n_outputs = 2
         self.centers = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         self.weights = torch.tensor([[1.0, 0.5], [0.5, 1.0]])
-        self.machine = KernelMachine(self.kernel_fn, self.n_outputs,
+        self.machine = BlockKernelMachine(self.kernel_fn, self.n_outputs,
                                      self.centers, self.weights)
 
         self.device = Device.create()
