@@ -1,6 +1,6 @@
 """Classes of Kernel Machines."""
 
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 import torch
 from concurrent.futures import ThreadPoolExecutor
 from device import Device
@@ -299,7 +299,7 @@ class BlockKernelMachine(KernelMachine):
 class ShardedKernelMachine(KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
 
-  def __init__(self, kms: list[PreallocatedKernelMachine]):
+  def __init__(self, kms: List[PreallocatedKernelMachine]):
     self.shard_kms = kms
     self.n_machines = len(kms)
     super().__init__(kms[0].kernel_fn, kms[0].n_outputs)

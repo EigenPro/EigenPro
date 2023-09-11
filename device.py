@@ -1,16 +1,16 @@
 import torch
 from torch.cuda.comm import broadcast
-from typing import Union
+from typing import List, Union
 
 class Device():
     """Handles tensor operations across multiple devices."""
 
-    def __init__(self, devices: list[torch.device]):
+    def __init__(self, devices: List[torch.device]):
         """Initializes the Device object with available devices."""
         self.devices = devices
 
     def __call__(self, tensor: torch.Tensor, strategy: str = "broadcast"
-                 ) -> Union[torch.Tensor, list[torch.Tensor]]:
+                 ) -> Union[torch.Tensor, List[torch.Tensor]]:
         """Applies a distribution strategy to a tensor."""
         if strategy == "divide_to_gpu":
             return self.distribute_tensor_across_gpus(tensor)
@@ -20,7 +20,7 @@ class Device():
             return tensor.to(self.devices[0])
 
     def distribute_tensor_across_gpus(self, tensor: torch.Tensor
-                                      ) -> list[torch.Tensor]:
+                                      ) -> List[torch.Tensor]:
         """Divides a tensor evenly across multiple GPUs."""
         tensor_segments = []
         segment_size = tensor.shape[0] // len(self.devices)
