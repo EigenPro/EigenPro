@@ -28,7 +28,7 @@ class KernelMachine:
   def n_outputs(self) -> int:
     return self._n_outputs
 
-  def forward(self, x: torch.Tensor) -> torch.Tensor:
+  def __call__(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass for the kernel machine.
     
     Args:
@@ -117,7 +117,7 @@ class PreallocatedKernelMachine(KernelMachine):
     """Return the number of centers."""
     return self.used_capacity
 
-  def forward(self, x: torch.Tensor) -> torch.Tensor:
+  def __call__(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass for the kernel machine.
     
     Args:
@@ -237,7 +237,7 @@ class BlockKernelMachine(KernelMachine):
     """
     self._weight_blocks[0][indices] += delta
   
-  def forward(self, x: torch.Tensor) -> torch.Tensor:
+  def __call__(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass of the kernel model.
     
     Args:
@@ -300,7 +300,7 @@ class ShardedKernelMachine(KernelMachine):
     self.n_machines = len(kms)
     super().__init__(kms[0].kernel_fn, kms[0].n_outputs)
 
-  def forward(self, x: torch.Tensor) -> torch.Tensor:
+  def __call__(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass for the kernel machine.
     
     Args:
@@ -310,7 +310,7 @@ class ShardedKernelMachine(KernelMachine):
         torch.Tensor: tensor of shape [n_samples, n_outputs].
     """
     with ThreadPoolExecutor() as executor:
-        kernel_matrices = [executor.submit(self.shard_kms[i].forward, x)
+        kernel_matrices = [executor.submit(self.shard_kms[i], x)
                             for i in range(self.n_machines)]
     return [k.result() for k in kernel_matrices]
 

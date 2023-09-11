@@ -119,7 +119,7 @@ class TestTensorFunctions(unittest.TestCase):
         np.testing.assert_array_almost_equal(self.model.weights,
                                              np.array([[0.0, 0.0],
                                                        [0.0, 0.0]]), decimal=6)
-        batch_p = self.model.forward(batch_x)
+        batch_p = self.model(batch_x)
         self.optimizer.step(batch_x, batch_y, batch_ids)        
         np.testing.assert_array_almost_equal(self.model.weights,
                                              np.array([[0.08, 0.12],
