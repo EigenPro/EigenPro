@@ -28,7 +28,10 @@ class KernelMachine:
   def n_outputs(self) -> int:
     return self._n_outputs
 
-  def __call__(self, x: torch.Tensor) -> torch.Tensor:
+  def __call__(self, *inputs):
+    return self.forward(*inputs)
+
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass for the kernel machine.
     
     Args:
@@ -117,7 +120,7 @@ class PreallocatedKernelMachine(KernelMachine):
     """Return the number of centers."""
     return self.used_capacity
 
-  def __call__(self, x: torch.Tensor) -> torch.Tensor:
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass for the kernel machine.
     
     Args:
@@ -237,7 +240,7 @@ class BlockKernelMachine(KernelMachine):
     """
     self._weight_blocks[0][indices] += delta
   
-  def __call__(self, x: torch.Tensor) -> torch.Tensor:
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass of the kernel model.
     
     Args:
@@ -300,7 +303,7 @@ class ShardedKernelMachine(KernelMachine):
     self.n_machines = len(kms)
     super().__init__(kms[0].kernel_fn, kms[0].n_outputs)
 
-  def __call__(self, x: torch.Tensor) -> torch.Tensor:
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass for the kernel machine.
     
     Args:
