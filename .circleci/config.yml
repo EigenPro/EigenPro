@@ -1,0 +1,15 @@
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Upgrade pip
+          command: python -m pip install --upgrade pip
+      - run:
+          name: Install Dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Run Tests
+          command: pytest
