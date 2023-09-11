@@ -29,6 +29,7 @@ class KernelMachine:
     return self._n_outputs
 
   def __call__(self, *inputs):
+    """To add compatibility with other PyTorch models"""
     return self.forward(*inputs)
 
   def forward(self, x: torch.Tensor) -> torch.Tensor:
