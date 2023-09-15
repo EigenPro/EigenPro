@@ -79,6 +79,12 @@ class EigenPro:
         self._precon = precon
         self._model.add_centers(precon.centers, precon.weights)
 
+        ###### Amirhesam: TODO: not sure cat is the best way?
+        self.grad_accumulation = 0
+        self.k_centers_nystroms_mult_Eigenvecs = \
+            torch.cat([ ki.to(precon.eigensys.vectors.device()) @precon.eigensys.vectors
+                                                            for ki in model.forward(self._precon.centers)]  )
+
     @property
     def model(self) -> models.KernelMachine:
         """Gets the active model (for training).
@@ -109,8 +115,8 @@ class EigenPro:
             batch_ids (torch.Tensor): Batch of sample indices.
         """
         in_ids, out_ids = split_ids(batch_ids, self._threshold_index)
-        batch_p = self.model(batch_x)
-        grad = batch_p - batch_y
+        pbatch,k_centers_batch_grad = self.model(batch_x)
+        grad = pbatch - batch_y
         in_batch_g = obtain_by_ids(in_ids, grad)
         out_batch_g = obtain_by_ids(out_ids, grad)
 
@@ -125,6 +131,7 @@ class EigenPro:
                 out_batch_size) * out_batch_g
 
         pdelta = self.precon.delta(batch_x, grad)
+        self.grad_accumulation = accumulation + k_centers_batch_grad - self.k_centers_nystroms_mult_Eigenvecs @ pdelta
 
         if in_batch_size:
             self.model.update_by_index(in_ids, in_delta)

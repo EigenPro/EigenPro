@@ -133,7 +133,11 @@ class PreallocatedKernelMachine(KernelMachine):
     x = x.to(self.device)
     kernel_mat = self._kernel_fn(x, self._centers[:self.used_capacity, :])
     weights = self._weights[:self.used_capacity, :]
-    return kernel_mat @ weights
+    grad_original = kernel_mat[:, self.original_size] @ weights[:self.original_size, :]
+    grad_rest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
+    grad = grad_original + grad_rest
+    k_centers_batch_grad = kernel_mat[:, self.original_size].T @ grad_original
+    return grad, k_centers_batch_grad
     
   def add_centers(self,
                   centers: torch.Tensor,
@@ -299,26 +303,66 @@ class BlockKernelMachine(KernelMachine):
 class ShardedKernelMachine(KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
 
-  def __init__(self, kms: List[PreallocatedKernelMachine]):
+  def __init__(self, kms: List[PreallocatedKernelMachine],device: 'Device' ):
+    self.device = device
     self.shard_kms = kms
+    self.n_devices = len(kms)
     self.n_machines = len(kms)
     super().__init__(kms[0].kernel_fn, kms[0].n_outputs)
 
+
+
   def forward(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass for the kernel machine.
-    
+
     Args:
         x (torch.Tensor): input tensor of shape [n_samples, n_features].
-        
+
     Returns:
         torch.Tensor: tensor of shape [n_samples, n_outputs].
     """
+    x_broadcast = self.device(x)
     with ThreadPoolExecutor() as executor:
-        kernel_matrices = [executor.submit(self.shard_kms[i], x)
-                            for i in range(self.n_machines)]
-    return [k.result() for k in kernel_matrices]
+      kernel_matrices = [executor.submit(self.shard_kms[i].forward, x_broadcast[str(i)])
+                         for i in range(self.n_devices)]
+    results = [k.result() for k in kernel_matrices]
+    grad_all = 0
+    k_centers_batch_grad_all = []
+    for r in results:
+      grad_all += r[0]
+      k_centers_batch_grad_all.append(r[1])
+    #### Amirhesam: nit sure cat is the best way?
+    return grad_all, torch.cat(k_centers_batch_grad_all)
 
-  def add_centers(self, centers_list: torch.Tensor) -> None:
+  def add_centers(self, centers: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
+    centers_gpus_list = self.device(centers, strategy="divide_to_gpu")
+    weights_gpus_list = self.device(weights, strategy="divide_to_gpu")
     with ThreadPoolExecutor() as executor:
-        _ = [executor.submit(self.shard_kms[i].add_centers, centers_list[i]) for
-              i in range(self.n_machines)]
+      _ = [executor.submit(self.shard_kms[i].add_centers, centers_gpus_list[str(i)]
+                           , weights_gpus_list[str(i)]) for i in range(self.n_devices)]
+
+  def update_by_index(self, indices: torch.Tensor,
+                      delta: torch.Tensor) -> None:
+    """Update the model weights by index.
+
+    Here we assume that only the first block is trainable.
+
+    Args:
+      indices: Tensor of 1-D indices to select rows of weights.
+      delta: Tensor of weight update of shape [n_indices, n_outputs].
+    """
+    indices_list = []
+    delta_list = []
+    threshold_now = 0
+    threshold_before = 0
+    for i in range(self.n_devices):
+      threshold_now = threshold_now + self.shard_kms[i].orignial_size
+      gp1_indices = torch.where([indices<threshold_now])[0]
+      indices_in_gpui = indices[gp1_indices] - threshold_before
+      indices_list.append(indices_in_gpui)
+      delta_list.append(gp1_indices)
+      threshold_before = threshold_now
+    with ThreadPoolExecutor() as executor:
+      _ = [executor.submit(self.shard_kms[i].update_by_index, indices_list[str(i)],
+                           delta_list[str(i)]) for i in range(self.n_devices)]
+
