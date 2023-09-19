@@ -146,10 +146,13 @@ class PreallocatedKernelMachine(KernelMachine):
     x = x.to(self.device)
     kernel_mat = self._kernel_fn(x, self._centers[:self.used_capacity, :])
     weights = self._weights[:self.used_capacity, :]
-    poriginal = kernel_mat[:, self.original_size] @ weights[:self.original_size, :]
-    prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
+    poriginal = kernel_mat[:, :self.original_size] @ weights[:self.original_size, :]
+    if kernel_mat.shape[1]>self.original_size:
+      prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
+    else:
+      prest = 0
     predictions = poriginal + prest
-    k_centers_batch_grad = kernel_mat[:, self.original_size].T @ predictions
+    k_centers_batch_grad = kernel_mat[:, :self.original_size].T @ predictions
     self.lru.put('k_centers_batch_grad',k_centers_batch_grad)
     return predictions
     
@@ -338,24 +341,36 @@ class ShardedKernelMachine(KernelMachine):
     """
     x_broadcast = self.device(x)
     with ThreadPoolExecutor() as executor:
-      predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[str(i)])
+      predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[i])
                          for i in range(self.n_devices)]
     results = [k.result() for k in predictions]
     p_all = 0
     k_centers_batch_grad_all = []
-    for r in results:
+    for i,r in enumerate(results):
       p_all += r
       k_centers_batch_grad_all.append(self.shard_kms[i].lru.get('k_centers_batch_grad'))
       self.lru.put('k_centers_batch_grad',torch.cat(k_centers_batch_grad_all) )
     return p_all
 
   def add_centers(self, centers: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
-    centers_gpus_list = self.device(centers, strategy="divide_to_gpu")
-    weights_gpus_list = self.device(weights, strategy="divide_to_gpu")
-    with ThreadPoolExecutor() as executor:
-      _ = [executor.submit(self.shard_kms[i].add_centers, centers_gpus_list[str(i)]
-                           , weights_gpus_list[str(i)]) for i in range(self.n_devices)]
+    """Adds new centers and weights.
 
+    Args:
+      centers: Kernel centers of shape [n_centers, n_features].
+      weights: Weight parameters corresponding to the centers of shape
+               [n_centers, n_output].
+
+    Returns:
+      center_weights: Weight parameters corresponding to the added centers.
+    """
+    centers_gpus_list = self.device(centers, strategy="divide_to_gpu")
+    center_weights = weights if weights is not None else torch.zeros(
+        (centers.shape[0], self.n_outputs))
+    weights_gpus_list = self.device(center_weights, strategy="divide_to_gpu")
+    with ThreadPoolExecutor() as executor:
+      _ = [executor.submit(self.shard_kms[i].add_centers, centers_gpus_list[i]
+                           , weights_gpus_list[i]) for i in range(self.n_devices)]
+    return center_weights
   def update_by_index(self, indices: torch.Tensor,
                       delta: torch.Tensor) -> None:
     """Update the model weights by index.
@@ -378,6 +393,6 @@ class ShardedKernelMachine(KernelMachine):
       delta_list.append(gp1_indices)
       threshold_before = threshold_now
     with ThreadPoolExecutor() as executor:
-      _ = [executor.submit(self.shard_kms[i].update_by_index, indices_list[str(i)],
+      _ = [executor.submit(self.shard_kms[i].update_by_index, indices_list[i],
                            delta_list[str(i)]) for i in range(self.n_devices)]
 
