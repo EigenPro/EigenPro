@@ -4,6 +4,7 @@ from typing import Callable, List, Optional
 import torch
 from concurrent.futures import ThreadPoolExecutor
 from device import Device
+from utils import LRUCache
 
 
 class KernelMachine:
@@ -116,6 +117,8 @@ class PreallocatedKernelMachine(KernelMachine):
     self.used_capacity = 0
     self.add_centers(centers, weights)
 
+    self.lru = LRUCache()
+
   @property
   def n_centers(self) -> int:
     """Return the number of centers."""
@@ -133,11 +136,12 @@ class PreallocatedKernelMachine(KernelMachine):
     x = x.to(self.device)
     kernel_mat = self._kernel_fn(x, self._centers[:self.used_capacity, :])
     weights = self._weights[:self.used_capacity, :]
-    grad_original = kernel_mat[:, self.original_size] @ weights[:self.original_size, :]
-    grad_rest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
-    grad = grad_original + grad_rest
-    k_centers_batch_grad = kernel_mat[:, self.original_size].T @ grad_original
-    return grad, k_centers_batch_grad
+    poriginal = kernel_mat[:, self.original_size] @ weights[:self.original_size, :]
+    prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
+    predictions = poriginal + prest
+    k_centers_batch_grad = kernel_mat[:, self.original_size].T @ predictions
+    self.lru.put('k_centers_batch_grad',k_centers_batch_grad)
+    return predictions
     
   def add_centers(self,
                   centers: torch.Tensor,
@@ -308,6 +312,7 @@ class ShardedKernelMachine(KernelMachine):
     self.shard_kms = kms
     self.n_devices = len(kms)
     self.n_machines = len(kms)
+    self.lru = LRUCache()
     super().__init__(kms[0].kernel_fn, kms[0].n_outputs)
 
 
@@ -323,16 +328,16 @@ class ShardedKernelMachine(KernelMachine):
     """
     x_broadcast = self.device(x)
     with ThreadPoolExecutor() as executor:
-      kernel_matrices = [executor.submit(self.shard_kms[i].forward, x_broadcast[str(i)])
+      predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[str(i)])
                          for i in range(self.n_devices)]
-    results = [k.result() for k in kernel_matrices]
-    grad_all = 0
+    results = [k.result() for k in predictions]
+    p_all = 0
     k_centers_batch_grad_all = []
     for r in results:
-      grad_all += r[0]
-      k_centers_batch_grad_all.append(r[1])
-    #### Amirhesam: nit sure cat is the best way?
-    return grad_all, torch.cat(k_centers_batch_grad_all)
+      p_all += r
+      k_centers_batch_grad_all.append(self.shard_kms[i].lru.get('k_centers_batch_grad'))
+      self.lru.put('k_centers_batch_grad',torch.cat(k_centers_batch_grad_all) )
+    return p_all
 
   def add_centers(self, centers: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
     centers_gpus_list = self.device(centers, strategy="divide_to_gpu")

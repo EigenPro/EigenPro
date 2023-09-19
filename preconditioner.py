@@ -109,7 +109,10 @@ class Preconditioner:
         self._weights = weights
         self._eigensys = top_eigensystem(centers, top_q_eig, kernel_fn)
 
-    
+    @property
+    def eigensys(self) -> torch.Tensor:
+        """Returns eigensys of preconditioner."""
+        return self._eigensys
     @property
     def centers(self) -> torch.Tensor:
         """Returns centers for constructing the preconditioner."""
