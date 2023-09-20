@@ -355,7 +355,7 @@ class ShardedKernelMachine(KernelMachine):
       k_centers_batch_grad_all.append(self.shard_kms[i].lru.get('k_centers_batch_grad'))
 
     self.lru.put('k_centers_batch_grad',torch.cat(k_centers_batch_grad_all) )
-    return p_allq
+    return p_all
 
 
   def add_centers(self, centers: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
