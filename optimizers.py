@@ -81,9 +81,13 @@ class EigenPro:
 
         ###### Amirhesam: TODO: not sure cat is the best way?
         self.grad_accumulation = 0
-        self.k_centers_nystroms_mult_eigenvecs = \
-            torch.cat([ ki.to(precon.eigensys.vectors.device()) @precon.eigensys.vectors
-                                                            for ki in model.forward(self._precon.centers)]  )
+
+
+        model.forward(self._precon.centers)
+        precon_eigenvectors = precon.eigensys.vectors
+        self.k_centers_nystroms_mult_eigenvecs =\
+            model.lru.get('k_centers_batch_grad').to(precon_eigenvectors.device)@precon_eigenvectors
+
 
     @property
     def model(self) -> models.KernelMachine:
@@ -132,7 +136,8 @@ class EigenPro:
                 out_batch_size) * out_batch_g
 
         pdelta = self.precon.delta(batch_x, grad)
-        self.grad_accumulation = accumulation + k_centers_batch_grad - self.k_centers_nystroms_mult_eigenvecs @ pdelta
+        self.grad_accumulation = self.grad_accumulation + k_centers_batch_grad - \
+                                 self.k_centers_nystroms_mult_eigenvecs @ pdelta
 
         if in_batch_size:
             self.model.update_by_index(in_ids, in_delta)

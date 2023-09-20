@@ -160,9 +160,10 @@ class Preconditioner:
 
         # of shape [q, n_outputs]
         vtkg = eigenvectors.T @ kg
-        vdvtkg = eigenvectors @ (normalized_ratios * vtkg)
+        # vdvtkg = eigenvectors @ (normalized_ratios * vtkg)
 
-        return vdvtkg
+        # return vdvtkg
+        return vtkg
 
     def update(self, delta: torch.Tensor, batch_size: int) -> None:
         """Updates the weight parameters."""

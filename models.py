@@ -226,10 +226,12 @@ class BlockKernelMachine(KernelMachine):
       weights: An optional tensor of weights of shape [n_centers, n_outputs].
     """
     super().__init__(kernel_fn, n_outputs)
+    self.original_size = centers.shape[0]
     self._kernel_fn = kernel_fn
     self._n_outputs = n_outputs
     self._center_blocks = []
     self._weight_blocks = []
+    self.lru = LRUCache()
     _ = self.add_centers(centers, weights)
   
   @property
@@ -275,6 +277,8 @@ class BlockKernelMachine(KernelMachine):
     centers = torch.cat(self._center_blocks, dim=0)
     # Kernel matrix of shape [batch_size, n_centers].
     kernel_mat = self._kernel_fn(x, centers)
+    #cache teh matrix
+    self.lru.put('k_centers_batch_grad',kernel_mat[:,:self.original_size])
     # Weight matrix of shape [n_centers, n_outputs].
     weights = torch.cat(self._weight_blocks, dim=0)
     # Output of shape [batch_size, n_outputs]
@@ -349,8 +353,10 @@ class ShardedKernelMachine(KernelMachine):
     for i,r in enumerate(results):
       p_all += r
       k_centers_batch_grad_all.append(self.shard_kms[i].lru.get('k_centers_batch_grad'))
-      self.lru.put('k_centers_batch_grad',torch.cat(k_centers_batch_grad_all) )
-    return p_all
+
+    self.lru.put('k_centers_batch_grad',torch.cat(k_centers_batch_grad_all) )
+    return p_allq
+
 
   def add_centers(self, centers: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
     """Adds new centers and weights.

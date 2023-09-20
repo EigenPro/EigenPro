@@ -15,7 +15,10 @@ class Device():
         if strategy == "divide_to_gpu":
             return self.distribute_tensor_across_gpus(tensor)
         elif strategy == "broadcast":
-            return broadcast(tensor, self.devices)
+            if len(self.devices)==1 and self.devices[0]==torch.device('cpu'):
+                return [tensor]
+            else:
+                return broadcast(tensor, self.devices)
         elif strategy == "base":
             return tensor.to(self.devices[0])
 
