@@ -119,9 +119,9 @@ class EigenPro:
             batch_ids (torch.Tensor): Batch of sample indices.
         """
         in_ids, out_ids = split_ids(batch_ids, self._threshold_index)
-        pbatch = self.model(batch_x)
+        batch_p = self.model(batch_x)
         k_centers_batch_grad = self.model.lru.get('k_centers_batch_grad')
-        grad = pbatch - batch_y
+        grad = batch_p - batch_y
         in_batch_g = obtain_by_ids(in_ids, grad)
         out_batch_g = obtain_by_ids(out_ids, grad)
 
