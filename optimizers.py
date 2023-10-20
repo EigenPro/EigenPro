@@ -135,7 +135,7 @@ class EigenPro:
             out_delta = -self.precon.scaled_learning_rate(
                 out_batch_size) * out_batch_g
 
-        delta, deltap = self.precon.delta(batch_x, grad)
+        deltap, delta = self.precon.delta(batch_x, grad)
         self.grad_accumulation = self.grad_accumulation + k_centers_batch_grad - \
                                  self.k_centers_nystroms_mult_eigenvecs @ deltap
 
