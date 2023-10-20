@@ -78,8 +78,6 @@ class EigenPro:
 
         self._precon = precon
         self._model.add_centers(precon.centers, precon.weights)
-
-        ###### Amirhesam: TODO: not sure cat is the best way?
         self.grad_accumulation = 0
 
 
