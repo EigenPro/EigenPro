@@ -86,7 +86,7 @@ class EigenPro:
         model.forward(self._precon.centers)
         precon_eigenvectors = precon.eigensys.vectors
         self.k_centers_nystroms_mult_eigenvecs =\
-            model.lru.get('k_centers_batch_grad').to(precon_eigenvectors.device)@precon_eigenvectors
+            model.lru.get('k_centers_batch_grad').to(precon_eigenvectors.device) @ precon_eigenvectors
 
 
     @property
