@@ -6,7 +6,7 @@ loader = Loader(X,y)
 S_data = sample(X)
 S_centers = sample(Z)
 
-model = create_KernelModels(Z,n_outputs,kernel_fn) ####Amirheasm done
+model = create_KernelModels(Z,n_outputs,kernel_fn) 
 precon_data = Preconditioner(S_data,top_q_data)
 precon_model = Preconditioner(S_centers,top_q_centers)
 projection = Projector(Z)
