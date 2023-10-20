@@ -1,4 +1,3 @@
-
 from utils import create_kernelmodel
 
 X,Y,Z  = load(dataset)

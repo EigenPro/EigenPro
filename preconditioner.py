@@ -143,27 +143,26 @@ class Preconditioner:
     def delta(self, batch_x: torch.Tensor, grad: torch.Tensor) -> torch.Tensor:
         """Computes weight delta for preconditioner centers.
         Args:
-            batch_x (torch.Tensor): Of shape `[batch_size, n_features]`.
+            batch_x (torch.Tensor): Of shape `[, n_features]`.
             grad (torch.Tensor): Of shape `[batch_size, n_outputs]`.
 
         Returns:
-            torch.Tensor: Of Shape `[n_centers, n_outputs]`.
+            torch.Tensor, torch.Tensor: Of Shape `[q, n_outputs]`, `[n_centers, n_outputs]` respectively.
 
         Raises:
             None: This method is not expected to raise any exceptions.
         """
         kernel_mat = self._kernel_fn(self._centers, batch_x)
-        # of shape [n_centers, n_outputs]
+        # kg is of shape [n_centers, n_outputs]
         kg = kernel_mat @ grad
         eigenvectors = self._eigensys.vectors
         normalized_ratios = self._eigensys.normalized_ratios
 
-        # of shape [q, n_outputs]
+        # vtkg of shape [q, n_outputs]
         vtkg = eigenvectors.T @ kg
-        # vdvtkg = eigenvectors @ (normalized_ratios * vtkg)
+        vdvtkg = eigenvectors @ (normalized_ratios * vtkg)
 
-        # return vdvtkg
-        return vtkg
+        return vtkg,vdvtkg
 
     def update(self, delta: torch.Tensor, batch_size: int) -> None:
         """Updates the weight parameters."""

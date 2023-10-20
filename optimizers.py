@@ -135,13 +135,13 @@ class EigenPro:
             out_delta = -self.precon.scaled_learning_rate(
                 out_batch_size) * out_batch_g
 
-        pdelta = self.precon.delta(batch_x, grad)
+        delta, deltap = self.precon.delta(batch_x, grad)
         self.grad_accumulation = self.grad_accumulation + k_centers_batch_grad - \
-                                 self.k_centers_nystroms_mult_eigenvecs @ pdelta
+                                 self.k_centers_nystroms_mult_eigenvecs @ deltap
 
         if in_batch_size:
             self.model.update_by_index(in_ids, in_delta)
         if out_batch_size:
             self.model.add_centers(batch_x[out_ids], out_delta)
 
-        self.precon.update(pdelta, len(batch_ids))
+        self.precon.update(delta, len(batch_ids))
