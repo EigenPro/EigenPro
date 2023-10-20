@@ -74,7 +74,7 @@ class TestPreconditionerAndKernelEigenSystem(unittest.TestCase):
         grad = torch.Tensor([[0.5],
                              [0.6]])
 
-        delta,_ = precon.delta(batch_x, grad)
+        _, delta = precon.delta(batch_x, grad)
         np.testing.assert_array_almost_equal(
             delta, np.array([[0.718163],
                              [0.913501],
