@@ -28,7 +28,7 @@ class TestKernelMachine(unittest.TestCase):
           self.kms.append( PreallocatedKernelMachine(self.kernel_fn, self.n_outputs ,centers,weights=weights,device= d) )
 
 
-        self.ShardedKernelMachine = ShardedKernelMachine(self.kms)
+        self.ShardedKernelMachine = ShardedKernelMachine(self.kms,self.device)
 
         centers = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5., 6.0]])
         weights = torch.tensor([[1.0, 0.5], [0.5, 1.0], [0.5, 0.5]])
@@ -69,9 +69,9 @@ class TestKernelMachine(unittest.TestCase):
         self.are_tensor_lists_equal(out, expected_output)
     def test_add_centers_sharded(self):
         new_centers = torch.tensor([[7.0, 8.0]])
-        new_centers_list = self.device(new_centers,strategy = "divide_to_gpu")
+        # new_centers_list = self.device(new_centers,strategy = "divide_to_gpu")
         n_devices = len(self.device.devices)
-        self.ShardedKernelMachine.add_centers(new_centers_list)
+        self.ShardedKernelMachine.add_centers(new_centers)
         for i,_ in enumerate(self.device.devices):
           self.assertEqual(self.ShardedKernelMachine.shard_kms[i].n_centers, 3+(i+1)//n_devices)
 

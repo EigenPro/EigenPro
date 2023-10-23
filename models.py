@@ -6,6 +6,17 @@ from concurrent.futures import ThreadPoolExecutor
 from device import Device
 
 
+class LRUCache():
+  def __init__(self):
+    self.cache = {}
+
+  def get(self, key: int) -> int:
+    return self.cache.get(key, -1)
+
+  def put(self, key: int, value: int) -> None:
+    self.cache.clear()  # Since capacity is 1, clear the cache before adding a new item
+    self.cache[key] = value
+
 class KernelMachine:
   """Base class for KernelMachine.
   
@@ -116,6 +127,8 @@ class PreallocatedKernelMachine(KernelMachine):
     self.used_capacity = 0
     self.add_centers(centers, weights)
 
+    self.lru = LRUCache()
+
   @property
   def n_centers(self) -> int:
     """Return the number of centers."""
@@ -133,7 +146,15 @@ class PreallocatedKernelMachine(KernelMachine):
     x = x.to(self.device)
     kernel_mat = self._kernel_fn(x, self._centers[:self.used_capacity, :])
     weights = self._weights[:self.used_capacity, :]
-    return kernel_mat @ weights
+    poriginal = kernel_mat[:, :self.original_size] @ weights[:self.original_size, :]
+    if kernel_mat.shape[1]>self.original_size:
+      prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
+    else:
+      prest = 0
+    predictions = poriginal + prest
+    k_centers_batch_grad = kernel_mat[:, :self.original_size].T @ predictions
+    self.lru.put('k_centers_batch_grad',k_centers_batch_grad)
+    return predictions
     
   def add_centers(self,
                   centers: torch.Tensor,
@@ -205,10 +226,12 @@ class BlockKernelMachine(KernelMachine):
       weights: An optional tensor of weights of shape [n_centers, n_outputs].
     """
     super().__init__(kernel_fn, n_outputs)
+    self.original_size = centers.shape[0]
     self._kernel_fn = kernel_fn
     self._n_outputs = n_outputs
     self._center_blocks = []
     self._weight_blocks = []
+    self.lru = LRUCache()
     _ = self.add_centers(centers, weights)
   
   @property
@@ -254,6 +277,8 @@ class BlockKernelMachine(KernelMachine):
     centers = torch.cat(self._center_blocks, dim=0)
     # Kernel matrix of shape [batch_size, n_centers].
     kernel_mat = self._kernel_fn(x, centers)
+    #cache teh matrix
+    self.lru.put('k_centers_batch_grad',kernel_mat[:,:self.original_size])
     # Weight matrix of shape [n_centers, n_outputs].
     weights = torch.cat(self._weight_blocks, dim=0)
     # Output of shape [batch_size, n_outputs]
@@ -299,26 +324,81 @@ class BlockKernelMachine(KernelMachine):
 class ShardedKernelMachine(KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
 
-  def __init__(self, kms: List[PreallocatedKernelMachine]):
+  def __init__(self, kms: List[PreallocatedKernelMachine],device: 'Device' ):
+    self.device = device
     self.shard_kms = kms
+    self.n_devices = len(kms)
     self.n_machines = len(kms)
+    self.lru = LRUCache()
     super().__init__(kms[0].kernel_fn, kms[0].n_outputs)
+
+
 
   def forward(self, x: torch.Tensor) -> torch.Tensor:
     """Forward pass for the kernel machine.
-    
+
     Args:
         x (torch.Tensor): input tensor of shape [n_samples, n_features].
-        
+
     Returns:
         torch.Tensor: tensor of shape [n_samples, n_outputs].
     """
+    x_broadcast = self.device(x)
     with ThreadPoolExecutor() as executor:
-        kernel_matrices = [executor.submit(self.shard_kms[i], x)
-                            for i in range(self.n_machines)]
-    return [k.result() for k in kernel_matrices]
+      predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[i])
+                         for i in range(self.n_devices)]
+    results = [k.result() for k in predictions]
+    p_all = 0
+    k_centers_batch_grad_all = []
+    for i,r in enumerate(results):
+      p_all += r
+      k_centers_batch_grad_all.append(self.shard_kms[i].lru.get('k_centers_batch_grad'))
 
-  def add_centers(self, centers_list: torch.Tensor) -> None:
+    self.lru.put('k_centers_batch_grad',torch.cat(k_centers_batch_grad_all) )
+    return p_all
+
+
+  def add_centers(self, centers: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
+    """Adds new centers and weights.
+
+    Args:
+      centers: Kernel centers of shape [n_centers, n_features].
+      weights: Weight parameters corresponding to the centers of shape
+               [n_centers, n_output].
+
+    Returns:
+      center_weights: Weight parameters corresponding to the added centers.
+    """
+    centers_gpus_list = self.device(centers, strategy="divide_to_gpu")
+    center_weights = weights if weights is not None else torch.zeros(
+        (centers.shape[0], self.n_outputs))
+    weights_gpus_list = self.device(center_weights, strategy="divide_to_gpu")
     with ThreadPoolExecutor() as executor:
-        _ = [executor.submit(self.shard_kms[i].add_centers, centers_list[i]) for
-              i in range(self.n_machines)]
+      _ = [executor.submit(self.shard_kms[i].add_centers, centers_gpus_list[i]
+                           , weights_gpus_list[i]) for i in range(self.n_devices)]
+    return center_weights
+  def update_by_index(self, indices: torch.Tensor,
+                      delta: torch.Tensor) -> None:
+    """Update the model weights by index.
+
+    Here we assume that only the first block is trainable.
+
+    Args:
+      indices: Tensor of 1-D indices to select rows of weights.
+      delta: Tensor of weight update of shape [n_indices, n_outputs].
+    """
+    indices_list = []
+    delta_list = []
+    threshold_now = 0
+    threshold_before = 0
+    for i in range(self.n_devices):
+      threshold_now = threshold_now + self.shard_kms[i].orignial_size
+      gp1_indices = torch.where([indices<threshold_now])[0]
+      indices_in_gpui = indices[gp1_indices] - threshold_before
+      indices_list.append(indices_in_gpui)
+      delta_list.append(gp1_indices)
+      threshold_before = threshold_now
+    with ThreadPoolExecutor() as executor:
+      _ = [executor.submit(self.shard_kms[i].update_by_index, indices_list[i],
+                           delta_list[str(i)]) for i in range(self.n_devices)]
+
