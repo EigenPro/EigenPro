@@ -1,0 +1,63 @@
+""" Common utils for package EigenPro_v3.2
+"""
+import torch
+from device import Device
+from models import  PreallocatedKernelMachine_optimized, ShardedKernelMachine
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
+
+import ipdb
+
+DEFAULT_DTYPE = torch.float32
+
+
+      
+class MapReduceEngein():
+    def __init__(self, device):
+        self.device = device
+        self.n_devices = len(device.devices)
+        self.base_device = device.devices[0]
+
+    def map(self,f,args_done , args_dup = None):
+        # duplicate args_dup
+        if args_dup != None:
+            args_dup_list = self.device(args_dup)
+
+        with ThreadPoolExecutor() as executor:
+            out = [executor.submit(f,args_done[i], args_dup_list[i]) for i in range(self.n_devices)]
+
+        outs = [k.result() for k in out]
+        # # split arg in args_splits
+        # for arg in args_split:
+        #     splitted = split(arg, devices)
+        #
+        # # call f on each device
+        return outs
+
+
+    def reduce(self,outs):
+        return [out.to(self.base_device) for out in outs]
+
+
+# collect results from all devices onto the main device
+
+
+def create_kernel_model(Z,n_outputs,kernel_fn,device,type=torch.float32, tmp_centers_coeff = 2 ):
+
+    # ipdb.set_trace()
+    Z_list = [Z]#device(Z, strategy="divide_to_gpu")
+    kms = []
+    for i,zi in enumerate(Z_list):
+        kms.append(PreallocatedKernelMachine_optimized( kernel_fn,n_outputs,zi,type=type,device=device.devices[i],
+                                              tmp_centers_coeff=tmp_centers_coeff) )
+
+    del Z_list
+    # ipdb.set_trace()
+    return ShardedKernelMachine(kms,device)
+
+
+
+
+
+
+
