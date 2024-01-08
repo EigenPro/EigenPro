@@ -23,20 +23,7 @@ parser.add_argument("--s_model", type=int, help="s_model",default = 2_000)
 parser.add_argument("--q_data", type=int, help="q_data",default = 100)
 parser.add_argument("--q_model", type=int, help="q_model",default = 100)
 parser.add_argument("--epochs", type=int, help="q_model",default = 2)
-
 args = parser.parse_args()
-
-###### devivces ####
-device = Device.create()
-device_base = device.device_base
-####### configs ######
-type = torch.float32
-n = args.n
-p = args.p
-d = 1_000 ###ambient dimension
-d_out = 1
-bandwidth = 5.0
-n_epochs = args.epochs
 
 
 ##### Loading data set for FASHIONMNIST ########
@@ -49,15 +36,18 @@ transform = transforms.Compose([
 train_dataset = datasets.FashionMNIST(root=data_root, train=True, download=True, transform=transform)
 test_dataset = datasets.FashionMNIST(root=data_root, train=False, download=True, transform=transform)
 
+n = args.n
+p = args.p
 
-X = train_dataset.data.reshape(-1,28*28)/255.0 #torch.randn((n,d))
-Y = one_hot(train_dataset.targets.long())#torch.randn((n,d_out))
+X_all = train_dataset.data.reshape(-1,28*28)/255.0
+Y = one_hot(train_dataset.targets.long())
 train_set_indices = np.random.choice(60_000,n,replace=False)
-X = X[train_set_indices,:]
+X = X_all[train_set_indices,:]
 Y = Y[train_set_indices]
 
-Z = X[0:p,:] #### make sure Z is the first p samples of X
-x_val = test_dataset.data.reshape(-1,28*28)/255.0
+centers_set_indices = np.random.choice(60_000,p,replace=False)
+Z = X_all[centers_set_indices,:]
+X_val = test_dataset.data.reshape(-1,28*28)/255.0
 Y_val = one_hot(test_dataset.targets.long())
 
 
@@ -80,19 +70,23 @@ Y_val = one_hot(test_dataset.targets.long())
 # run.save()
 
 
+######Eigenpro configs
+type = torch.float16
+n_epochs = args.epochs
+s_data, s_model, q_data, q_model = args.s_data,  args.s_model, args.q_data, args.q_model
+bandwidth = 20.0
+kernel_fn = lambda x, z: laplacian(x, z, bandwidth = bandwidth)
+device = Device.create()
+device_base = device.device_base
 
 ######### Eigenpro ########
-s_data, s_model, q_data, q_model = args.s_data,  args.s_model, args.q_data, args.q_model
-kernel_fn = lambda x, z: laplacian(x, z, bandwidth= 20.0)
-
-model = run_eigenpro(Z, X, Y, x_val, Y_val,device,type=type,kernel=kernel_fn,
+model = run_eigenpro(Z, X, Y, X_val, Y_val,device,type=type,kernel=kernel_fn,
              s_data= s_data, s_model= s_model, q_data=q_data, q_model=q_model,
              tmp_centers_coeff = 2, wandb =  None, epochs=n_epochs)
 
 
 ###### IF X=Z which means centers are the same as the whole training set use the following
-# s_data, s_model, q_data, q_model = args.s_data,  args.s_model, args.q_data, args.q_model
-# model = run_eigenpro(X, X, Y, x_val, Y_val,device,type=type, kernel=kernel_fn,,
+# model = run_eigenpro(X, X, Y, X_val, Y_val,device,type=type, kernel=kernel_fn,
 #              s_data= s_data, s_model= s_model, q_data=q_data, q_model=q_model,
 #              tmp_centers_coeff = 2, wandb =  None, epochs=n_epochs, accumulated_gradients =False)
 

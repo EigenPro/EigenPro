@@ -1,16 +1,14 @@
-### Hi there 👋
+## Tutorial: How to Use This Repository
 
-<!--
-**EigenPro/EigenPro** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+1. **Data Preparation**: 
+   In `main.py`, replace `X`, `Y`, `X_val`, and `Y_val` with your dataset.
 
-Here are some ideas to get you started:
+2. **Eigenpro Configuration**:
+   - **Kernel and Bandwidth**: Choose your preferred kernel and bandwidth in the Eigenpro configs section. If unsure, set `kernel_fn = None` and we'll auto-select for you.
+   - **Precision**: Change `type` to `torch.float32` for higher precision. `float16` is generally adequate for most datasets.
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+3. **Usage**: 
+   Review the comments in `run_eigenpro` to determine the best usage for your situation.
+
+4. **Execution**: 
+   After editing, run the script with `python main.py`.
