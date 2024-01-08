@@ -17,12 +17,12 @@ from torchvision import datasets, transforms
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--n", type=int, help="Number of data points",default = 50_000)
-parser.add_argument("--p", type=int, help="Model size",default = 5_000)
-parser.add_argument("--s_data", type=int, help="s_data",default = 1_000)
-parser.add_argument("--s_model", type=int, help="s_model",default = 1_000)
+parser.add_argument("--p", type=int, help="Model size",default = 20_000)
+parser.add_argument("--s_data", type=int, help="s_data",default = 2_000)
+parser.add_argument("--s_model", type=int, help="s_model",default = 2_000)
 parser.add_argument("--q_data", type=int, help="q_data",default = 100)
 parser.add_argument("--q_model", type=int, help="q_model",default = 100)
-parser.add_argument("--epochs", type=int, help="q_model",default = 1)
+parser.add_argument("--epochs", type=int, help="q_model",default = 2)
 
 args = parser.parse_args()
 
@@ -39,7 +39,7 @@ bandwidth = 5.0
 n_epochs = args.epochs
 
 
-##### Loading data set fo fashionmnist ########
+##### Loading data set for FASHIONMNIST ########
 data_root = '/expanse/lustre/projects/csd697/amirhesam/data/'
 # Define transformations
 transform = transforms.Compose([
