@@ -1,14 +1,30 @@
-## Tutorial: How to Use This Repository
+# Tutorial: How to Use This Repository
 
-1. **Data Preparation**: 
-   In `main.py`, replace `X`, `Y`, `X_val`, and `Y_val` with your dataset.
+## Data Preparation
+Replace `X`, `Y`, `X_val`, and `Y_val` in `main.py` with your dataset variables.
 
-2. **Eigenpro Configuration**:
-   - **Kernel and Bandwidth**: Choose your preferred kernel and bandwidth in the Eigenpro configs section. If unsure, set `kernel_fn = None` and we'll auto-select for you.
-   - **Precision**: Change `type` to `torch.float32` for higher precision. `float16` is generally adequate for most datasets.
+## EigenPro Configuration
+- **Scalability**: The latest version is capable of running on a single GPU with support for up to 1M centers.
+- **Kernel and Bandwidth**: Configure your kernel and bandwidth in the EigenPro settings. Use `kernel_fn = None` for automatic selection.
+- **Precision**: Opt for `torch.float32` for higher precision. `float16` is generally sufficient for most datasets.
 
-3. **Usage**: 
-   Review the comments in `run_eigenpro` to determine the best usage for your situation.
+## Usage
+Review the comments in `run_eigenpro` to select the best configuration for your use case.
 
-4. **Execution**: 
-   After editing, run the script with `python main.py`.
+## Execution
+To run the updated EigenPro, execute `python main.py` in your command line.
+
+---
+
+# Benchmark Results
+
+## Performance Highlights
+- **Performance Boost**: The new version of EigenPro offers an estimated 100x speed increase from the previous iterations.
+- **Comparison with FALKON**: It demonstrates considerable speed advantages over FALKON.
+
+## Benchmarking Details
+Benchmarks were conducted on the CIFAR5M dataset using extracted features from the pretrained 'mobilenet_2' network available in the timm library. The benchmarks processed the full 5 million samples of CIFAR5M for one epoch/iteration for all versions of EigenPro and FALKON.
+
+![Performance Comparison Table](benchmark.png)
+
+
