@@ -2,7 +2,7 @@
 # Benchmark Results
 
 ## Performance Highlights
-- **Performance Boost**: The new version of EigenPro offers an estimated 100x speed increase from the previous version.
+- **Performance Boost**: The new version of EigenPro offers an estimated *100x speed* increase from the previous version.
 - **Comparison with FALKON**: The memory requirement for FALKON fundamentally scales quadratically with the number of centers, necessitating the use of 1.2 terabytes of RAM for conducting experiments with 512,000 centers. In contrast, our algorithm requires only 200 gigabytes of RAM. The latest version of our algorithm has successfully addressed the slow speed issue of the previous one, making it now faster than FALKON.
 
 
