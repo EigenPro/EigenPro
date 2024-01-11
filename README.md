@@ -7,7 +7,7 @@ Introducing new EigenPro version.
 # Benchmark Results
 
 ## Performance Highlights
-- **Performance Boost**: EigenPro++ offers an estimated **100x speed** increase from the previous version (EigenPro3.0) [[1]](#References).
+- **Performance Boost**: EigenPro++ offers up to **100x speed** increase from the previous version (EigenPro3.0) [[1]](#References).
 - **Comparison with FALKON**: The memory requirement for FALKON fundamentally scales quadratically with the number of centers, necessitating the use of **1.2 TB RAM** for conducting experiments with 512,000 centers. In contrast, EigenPro++ requires only **200 GB of RAM**. The latest version of EigenPro has successfully addressed the slow speed issue of the previous one, making it now faster than FALKON [[2-4]](#References).
 
 ## Benchmarking Details
