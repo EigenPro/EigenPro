@@ -37,7 +37,7 @@ Follow these steps to get started with this repository:
 
 # References
 1. Abedsoltan, Amirhesam and Belkin, Mikhail and Pandit, Parthe, “Toward Large Kernel Models,” Proceedings of the 40th International Conference on Machine Learning, ICML'23, JMLR.org, 2023. [Link](https://proceedings.mlr.press/v202/abedsoltan23a/abedsoltan23a.pdf)
-2. Siyuan Ma, Mikhail Belkin, "Kernel machines that adapt to GPUs for effective large batch trainin", Proceedings of the 2nd SysMLConference,Palo Alto, CA,USA, 2019. [Link](https://mlsys.org/Conferences/2019/doc/2019/171.pdf)
+2. Siyuan Ma, Mikhail Belkin, "Kernel machines that adapt to GPUs for effective large batch trainin", Proceedings of the 2nd SysMLConference, 2019. [Link](https://mlsys.org/Conferences/2019/doc/2019/171.pdf)
 3. Siyuan Ma, Mikhail Belkin, Diving into the shallows: a computational perspective on large-scale shallow learning, Advances in Neural Information Processing Systems 30 (NeurIPS 2017). [Link](https://proceedings.neurips.cc/paper_files/paper/2017/file/bf424cb7b0dea050a42b9739eb261a3a-Paper.pdf)
 4. Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi, “Kernel methods through the roof: handling billions of points efficiently,” Advances in Neural Information Processing Systems, 2020. [Link](https://proceedings.neurips.cc/paper_files/paper/2020/file/a59afb1b7d82ec353921a55c579ee26d-Paper.pdf)
 5. Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, “FALKON: An optimal large scale kernel method,” Advances in Neural Information Processing Systems, 2017. [Link](https://papers.nips.cc/paper_files/paper/2017/file/05546b0e38ab9175cd905eebcc6ebb76-Paper.pdf)
