@@ -28,10 +28,10 @@ Follow these steps to get started with this repository:
    - **Scalability**: EigenPro++ is capable of running on a single GPU with support for up to 1M centers.
    - **Kernel and Bandwidth**: Configure your kernel and bandwidth in the EigenPro settings. Use `kernel_fn = None` for automatic selection.
    - **Precision**: Opt for `torch.float32` for higher precision. `float16` is generally sufficient for most datasets.
-   - **Centers**: If your model centers is the same as the whole data set (traditional kernel machine), then set `use_all_x_as_centers = 1` to switch to EigenPro2.0 method, intoduced in [[2-3]](#References), which is a faster method for this special case. 
-
+   - **Centers**: If your model centers is the same as the whole data set (traditional kernel machine), then set `use_all_x_as_centers = 1` to switch to EigenPro2.0 method, intoduced in [[2-3]](#References), which is a faster method for this special case.
+     
 4. **Execution**
-   - To run the updated EigenPro, execute `python main.py` in your command line.
+   - Use `python main.py` in your command line to run the code.
 
 ---
 
