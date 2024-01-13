@@ -1,6 +1,8 @@
 import torch
 from torch.cuda.comm import broadcast
 from typing import List, Union
+from termcolor import colored
+import ipdb
 
 class Device():
     """Handles tensor operations across multiple devices."""
@@ -37,11 +39,13 @@ class Device():
         return tensor_segments
 
     @staticmethod
-    def create() -> 'Device':
+    def create(use_gpu_if_availabel=True) -> 'Device':
         """Creates a Device instance for all GPUs or CPU if there is no GPU."""
-        if torch.cuda.is_available():
+        if torch.cuda.is_available() and use_gpu_if_availabel:
             device_list = [torch.device(f'cuda:{i}')
                            for i in range(torch.cuda.device_count())]
         else:
             device_list = [torch.device('cpu')]
-        return Device(device_list)
+        print(colored(f'notice: the current implementation can only support 1 GPU, we only use the following device:'
+                      f' ({device_list[0]}) ','red'))
+        return Device(device_list[0:1])
