@@ -8,7 +8,7 @@ Introducing new EigenPro version.
 
 ## Performance Highlights
 - **Performance Boost**: EigenPro++ offers up to **100x speed** increase from the previous version (EigenPro3.0) [[1]](#References).
-- **Comparison with FALKON**: The memory requirement for FALKON fundamentally scales quadratically with the number of centers, EigenPro does not have that emory issue. Moreover, the latest version, EigenPro++, has successfully addressed the slow speed issue of EigenPro3.0, making it now faster than FALKON [[4-6]](#References) when number of centers are large.
+- **Comparison with FALKON**: The memory requirement for FALKON fundamentally scales quadratically with the number of centers, EigenPro does not have this memory issue. Moreover, the latest version, EigenPro++, has successfully addressed the slow speed issue of EigenPro3.0, making it now faster than FALKON [[4-6]](#References) when number of centers are large.
 
 ## Benchmarking Details
 Benchmarks were conducted on the CIFAR5M dataset using extracted features from the pretrained 'mobilenet_2' network available in the timm library. The benchmarks processed the full 5 million samples of CIFAR5M for one epoch/iteration for all versions of EigenPro and FALKON.
