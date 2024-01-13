@@ -19,19 +19,21 @@ Benchmarks were conducted on the CIFAR5M dataset using extracted features from t
 
 # Tutorial: How to Use This Repository
 
-## Data Preparation
-Replace `X`, `Y`, `X_val`, and `Y_val` in `main.py` with your dataset variables.
+Follow these steps to get started with this repository:
 
-## EigenPro Configuration
-- **Scalability**: EigenPro++ is capable of running on a single GPU with support for up to 1M centers.
-- **Kernel and Bandwidth**: Configure your kernel and bandwidth in the EigenPro settings. Use `kernel_fn = None` for automatic selection.
-- **Precision**: Opt for `torch.float32` for higher precision. `float16` is generally sufficient for most datasets.
+1. **Data Preparation**
+   - Replace `X`, `Y`, `X_val`, and `Y_val` in `main.py` with your dataset variables.
 
-## Usage
-Review the comments in `run_eigenpro` to select the best configuration for your use case.
+2. **EigenPro Configuration**
+   - **Scalability**: EigenPro++ is capable of running on a single GPU with support for up to 1M centers.
+   - **Kernel and Bandwidth**: Configure your kernel and bandwidth in the EigenPro settings. Use `kernel_fn = None` for automatic selection.
+   - **Precision**: Opt for `torch.float32` for higher precision. `float16` is generally sufficient for most datasets.
 
-## Execution
-To run the updated EigenPro, execute `python main.py` in your command line.
+3. **Usage**
+   - Review the comments in `run_eigenpro` to select the best configuration for your use case.
+
+4. **Execution**
+   - To run the updated EigenPro, execute `python main.py` in your command line.
 
 ---
 
