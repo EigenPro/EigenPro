@@ -14,8 +14,10 @@ Introducing new EigenPro version.
 
 1. CIFAR5M extracted features:
 
-![CIFAR5M](benchmark.png)
-*We used extracted features from the pretrained 'mobilenet-2' network available in the timm library. The benchmarks processed the full 5 million samples of CIFAR5M for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on single A100 GPU, the maximum RAM we had access to was 1.2TB which was not sufficient for FLAKON with 1M centers.*
+<div>
+  <img src="benchmark.png" alt="CIFAR5M" style="width:100%;"/>
+  <p style="text-align:center; font-style:italic;">We used extracted features from the pretrained 'mobilenet-2' network available in the timm library. The benchmarks processed the full 5 million samples of CIFAR5M for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on single A100 GPU, the maximum RAM we had access to was 1.2TB which was not sufficient for FLAKON with 1M centers.</p>
+</div>
 
 
 
