@@ -21,7 +21,7 @@ We used extracted features from the pretrained 'mobilenet-2' network available i
 <div align="center">
   <img src="CIFAR5M_EXTRACTED.png" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
-  <em>Figure: Benchmark results for the CIFAR5M extracted feature dataset.</em>
+  <em>Figure: Benchmark results for the CIFAR5M extracted feature dataset on a single GPU(A100).</em>
 </div>
 
 
@@ -33,7 +33,7 @@ The benchmarks processed the 10 million samples with d = 1024 for one epoch/iter
 <div align="center">
   <img src="Libri.png" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
-  <em>Figure: Benchmark results for the Libri speach extracted feature dataset.</em>
+  <em>Figure: Benchmark results for the Libri speach extracted feature dataset on a single GPU(V100).</em>
 </div>
 
 ### 3. CIFAR5M raw data on single GPU
@@ -44,9 +44,18 @@ We used raw features of CIFAR5M. The benchmarks processed the full 5 million sam
 <div align="center">
   <img src="???" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
-  <em>Figure: Benchmark results for the CIFAR5M raw feature dataset.</em>
+  <em>Figure: Benchmark results for the CIFAR5M raw feature dataset on a single GPU(V100).</em>
 </div>
 
+### 4. CIFAR5M raw data on CPU
+
+We utilized the raw features from the CIFAR5M dataset. In our benchmarks, we processed a subset consisting of 1 million samples from CIFAR5M, each with a dimensionality of d = 3072, for a single epoch using EigenPro++. These results demonstrate that EigenPro++ offers relatively fast performance, even when operating on a CPU.
+
+<div align="center">
+  <img src="???" alt="CIFAR5M" style="max-width:80%;"/>
+  <br>
+  <em>Figure: Benchmark results for the CIFAR5M raw feature dataset on CPU.</em>
+</div>
 
 
 ---
