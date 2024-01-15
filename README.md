@@ -12,9 +12,19 @@ Introducing new EigenPro version.
 
 ## Benchmarking Details
 
-### 1. CIFAR5M Extracted Features
+### 1. CIFAR5M Extracted Features on single GPU
 
 We used extracted features from the pretrained 'mobilenet-2' network available in the timm library. The benchmarks processed the full 5 million samples of CIFAR5M for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single A100 GPU. The maximum RAM we had access to was 1.2TB, which was not sufficient for FALKON with 1M centers.
+
+<div align="center">
+  <img src="benchmark.png" alt="CIFAR5M" style="max-width:80%;"/>
+  <br>
+  <em>Figure: Benchmark results for the CIFAR5M dataset.</em>
+</div>
+
+### 2. Libri speach Extracted Features on single GPU
+
+The benchmarks processed the 10 million samples for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single V100 GPU. The maximum RAM available for this experiment was 300GB, which was not sufficient for FALKON with more than 128K centers. The features are extracted through a well-trained acoustic model (a VGG+BLSTM architecture in [[7]](#References) to align the length of audio and text. This is a 301-wise classification task where different class represents different uni-gram [[8]](#References). The implementation of extracting features is based on the ESPnet toolkit [[9]](#References) .
 
 <div align="center">
   <img src="benchmark.png" alt="CIFAR5M" style="max-width:80%;"/>
@@ -51,6 +61,9 @@ Follow these steps to get started with this repository:
 4. Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi, “Kernel methods through the roof: handling billions of points efficiently,” Advances in Neural Information Processing Systems, 2020. [Link](https://proceedings.neurips.cc/paper_files/paper/2020/file/a59afb1b7d82ec353921a55c579ee26d-Paper.pdf)
 5. Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, “FALKON: An optimal large scale kernel method,” Advances in Neural Information Processing Systems, 2017. [Link](https://papers.nips.cc/paper_files/paper/2017/file/05546b0e38ab9175cd905eebcc6ebb76-Paper.pdf)
 6. Ulysse Marteau-Ferey, Francis Bach, Alessandro Rudi, “Globally Convergent Newton Methods for Ill-conditioned Generalized Self-concordant Losses,” Advances in Neural Information Processing Systems, 2019. [Link](https://arxiv.org/pdf/1907.01771.pdf)
+7. Hui, L. and Belkin, M. Evaluation of neural architectures trained with square loss vs cross-entropy in classificationtasks. In International Conference on Learning Representations, 2021. [Link](https://arxiv.org/pdf/1907.01771.pdf](https://arxiv.org/pdf/2006.07322.pdf)https://arxiv.org/pdf/2006.07322.pdf)
+8. Jurafsky, D. Speech & language processing. Pearson Education India, 2000
+9. Watanabe, et. al. ESPnet: Toward large kernel models End-to-end speech processing toolkit. In Proceedingsof Interspeech, pp. 2207–2211, 2018. doi: 10.21437/Interspeech.2018-1456 [Link](https://www.isca-speech.org/archive/interspeech_2018/watanabe18_interspeech.html)
 
 
 
