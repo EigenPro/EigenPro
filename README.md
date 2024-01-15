@@ -5,6 +5,7 @@ Introducing new EigenPro version.
 ---
 
 # Benchmark Results
+In all experiments below, P refers to the number of centers (model size), d referes to ambient dimeniosn 
 
 ## Performance Highlights
 - **Performance Boost**: EigenPro++ offers up to **100x speed** increase from the previous version (EigenPro3.0) [[1]](#References).
@@ -14,20 +15,20 @@ Introducing new EigenPro version.
 
 ### 1. CIFAR5M Extracted Features on single GPU
 
-We used extracted features from the pretrained 'mobilenet-2' network available in the timm library. The benchmarks processed the full 5 million samples of CIFAR5M for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single A100 GPU. The maximum RAM we had access to was 1.2TB, which was not sufficient for FALKON with 1M centers.
+We used extracted features from the pretrained 'mobilenet-2' network available in the timm library. The benchmarks processed the full 5 million samples of CIFAR5M with d=512 for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single A100 GPU. The maximum RAM we had access to was 1.2TB, which was not sufficient for FALKON with 1M centers.
 
 
 <div align="center">
   <img src="CIFAR5M_EXTRACTED.png" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
-  <em>Figure: Benchmark results for the Libri speach extracted feature dataset.</em>
+  <em>Figure: Benchmark results for the CIFAR5M extracted feature dataset.</em>
 </div>
 
 
 
 ### 2. Libri speach Extracted Features on single GPU
 
-The benchmarks processed the 10 million samples for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single V100 GPU. The maximum RAM available for this experiment was 300GB, which was not sufficient for FALKON with more than 128K centers. The features are extracted through a well-trained acoustic model (a VGG+BLSTM architecture in [[7]](#References) to align the length of audio and text. This is a 301-wise classification task where different class represents different uni-gram [[8]](#References). The implementation of extracting features is based on the ESPnet toolkit [[9]](#References) .
+The benchmarks processed the 10 million samples with d = 1024 for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single V100 GPU. The maximum RAM available for this experiment was 300GB, which was not sufficient for FALKON with more than 128K centers. The features are extracted through a well-trained acoustic model (a VGG+BLSTM architecture in [[7]](#References) to align the length of audio and text. This is a 301-wise classification task where different class represents different uni-gram [[8]](#References). The implementation of extracting features is based on the ESPnet toolkit [[9]](#References) .
 
 <div align="center">
   <img src="Libri.png" alt="CIFAR5M" style="max-width:80%;"/>
