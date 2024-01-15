@@ -5,7 +5,7 @@ Introducing new EigenPro version.
 ---
 
 # Benchmark Results
-In all experiments below, P refers to the number of centers (model size), d referes to ambient dimension.
+In the experiments described below, 'P' denotes the number of centers, essentially representing the model size, while 'd' signifies the ambient dimension. For all experiments, a Laplacian kernel with a bandwidth of 20.0 was employed.
 
 ## Performance Highlights
 - **Performance Boost**: EigenPro++ offers up to **100x speed** increase from the previous version (EigenPro3.0) [[1]](#References).
