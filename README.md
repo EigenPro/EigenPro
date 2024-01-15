@@ -5,13 +5,13 @@ Introducing new EigenPro version.
 ---
 
 # Benchmark Results
-In the experiments described below, 'P' denotes the number of centers(model size), essentially representing the model size, while 'd' signifies the ambient dimension. For all experiments, a Laplacian kernel with a bandwidth of 20.0 was employed.
 
 ## Performance Highlights
 - **Performance Boost**: EigenPro++ offers up to **100x speed** increase from the previous version (EigenPro3.0) [[1]](#References).
 - **Comparison with FALKON**: The memory requirement for FALKON fundamentally scales quadratically with the number of centers, EigenPro does not have this memory issue. Moreover, the latest version, EigenPro++, has successfully addressed the slow speed issue of EigenPro3.0, making it now faster than FALKON [[4-6]](#References) when number of centers are large.
 
 ## Benchmarking Details
+In the experiments described below, 'P' denotes the number of centers(model size), essentially representing the model size, while 'd' signifies the ambient dimension. For all experiments, a Laplacian kernel with a bandwidth of 20.0 was employed.
 
 ### 1. CIFAR5M Extracted Features on single GPU
 
