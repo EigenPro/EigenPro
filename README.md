@@ -16,11 +16,13 @@ Introducing new EigenPro version.
 
 We used extracted features from the pretrained 'mobilenet-2' network available in the timm library. The benchmarks processed the full 5 million samples of CIFAR5M for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single A100 GPU. The maximum RAM we had access to was 1.2TB, which was not sufficient for FALKON with 1M centers.
 
-| Algorithm    | Accuracy (P = 64000) | Time (P = 64000) | Accuracy (P = 128000) | Time (P = 128000) | Accuracy (P = 256000) | Time (P = 256000) | Accuracy (P = 512000) | Time (P = 512000) | Accuracy (P = 1024000) | Time (P = 1024000) |
-|--------------|----------------------|------------------|-----------------------|-------------------|-----------------------|-------------------|-----------------------|-------------------|------------------------|--------------------|
-| EigenPro++   | 87.99%               | 271s             | 88.25%                | 309s              | 88.43%                | 406s              | 88.59%                | 695s              | 88.74%                 | 1268s              |
-| EigenPro3.0  | 88.33%               | 1359s            | 88.42%                | 3014s             | 88.61%                | 7663s             | 88.56%                | > 24hrs           | Out of memory          | Out of memory      |
-| FALKON       | 86.09%               | 184s             | 86.55%                | 537s              | 86.73%                | 2308s             | 86.71%                | 1443s             | Out of memory          | Out of memory      |
+| Algorithm    | \multicolumn{2}{c|}{P = 64000} | \multicolumn{2}{c|}{P = 128000} | \multicolumn{2}{c|}{P = 256000} | \multicolumn{2}{c|}{P = 512000} | \multicolumn{2}{c|}{P = 1024000} |
+|--------------|-----------------|-------------|------------------|--------------|------------------|--------------|------------------|--------------|-------------------|---------------|
+|              | Accuracy        | Time        | Accuracy         | Time         | Accuracy         | Time         | Accuracy         | Time         | Accuracy          | Time          |
+| EigenPro++   | 87.99%          | 271s        | 88.25%           | 309s         | 88.43%           | 406s         | 88.59%           | 695s         | 88.74%            | 1268s         |
+| EigenPro3.0  | 88.33%          | 1359s       | 88.42%           | 3014s        | 88.61%           | 7663s        | 88.56%           | > 24hrs      | Out of memory     | Out of memory |
+| FALKON       | 86.09%          | 184s        | 86.55%           | 537s         | 86.73%           | 2308s        | 86.71%           | 1443s        | Out of memory     | Out of memory |
+
 
 
 
