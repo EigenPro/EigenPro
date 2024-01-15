@@ -12,16 +12,15 @@ from termcolor import colored
 from tabulate import tabulate
 from tqdm import tqdm
 
-def get_perform(model, X,Y):
+def get_performance(model, X, Y):
     Y_hat = model.forward(X, train=False)
     loss_test = torch.norm(Y_hat.to('cpu') - Y) / len(Y)
     accu_test = sum(torch.argmax(Y_hat.to('cpu'), dim=1) == torch.argmax(Y, dim=1)) / len(Y)
     return loss_test, accu_test
 
-def run_eigenpro(Z, X, Y, x, y, device,type=torch.float32, kernel=None,
-                 s_data= 3_000, s_model= 3_000, q_data=150, q_model=150,
-                 tmp_centers_coeff = 2, wandb = None, T =None, epochs=1, accumulated_gradients = True):
-
+def run_eigenpro(Z, X, Y, x, y, device, type=torch.float32, kernel=None,
+                 s_data=3_000, s_model=3_000, q_data=150, q_model=150,
+                 tmp_centers_coeff=2, wandb=None, T=None, epochs=1, accumulated_gradients=True):
     """wrapper to run eigenpro
     Args:
         Z (torch.Tensor): centers. input tensor of shape [n_centers, n_features].
@@ -30,23 +29,23 @@ def run_eigenpro(Z, X, Y, x, y, device,type=torch.float32, kernel=None,
         x (torch.Tensor): validation samples. input tensor of shape [n_valid_samples, n_features].
         y (torch.Tensor): labels for validation samples. input tensor of shape [n_valid_samples, n_classes].
         device(object): device object from device.py.
-        type(torch.flaot32 or torch.flaot16): to save memory the default is torch.float16.
+        type(torch.float32 or torch.float16): to save memory the default is torch.float16.
         kernel(function): kernel function (default is laplacian kernel with bandwidth 20.0)
         s_data(int): number of Nystrom samples for data preconditioner
         s_model(int): number of Nystrom samples for model preconditioner
         q_data(int): number of suppressed eigenvalues for data preconditioner
         q_model(int): number of suppressed eigenvalues for model preconditioner
         tmp_centers_coeff(int): ratio between total number of centers(temporary + Z) and number of original centers(Z)
-        wandb(object): wnadb object to log the result to wandb
+        wandb(object): wandb object to log the result to wandb
         T(int): number of step to add temporary centers, note that if this is set to a number 'tmp_centers_coeff'
                 will be ignored.
-        epochs(int): number of epochs to run over the training smaples
+        epochs(int): number of epochs to run over the training samples
         accumulated_gradients: It should be true if Z and X are different, but if they are the same set this to False
                                for faster convergence.
 
 
     Returns:
-        model(object): the traiend model will be returned
+        model(object): the trained model will be returned
     """
 
 
@@ -54,7 +53,7 @@ def run_eigenpro(Z, X, Y, x, y, device,type=torch.float32, kernel=None,
     n = X.shape[0]
     d_out = Y.shape[-1]
     device_base = device.device_base
-    if kernel == None:
+    if kernel is None:
         kernel_fn = lambda x, z: laplacian(x, z, bandwidth= 20.0)
     else:
         kernel_fn = kernel
@@ -74,32 +73,32 @@ def run_eigenpro(Z, X, Y, x, y, device,type=torch.float32, kernel=None,
     precon_model.change_type(type=type)
 
 
-    ##### data loader
+    # data loader
     dataset = ArrayDataset(X, Y)
 
     batch_size = precon_data.critical_batch_size
     train_dataloader = DataLoader(dataset, batch_size=batch_size , shuffle=True)
 
-    ###### model initilization
+    # model initilization
     model = create_kernel_model(Z,d_out,kernel_fn,device,type=type,tmp_centers_coeff = tmp_centers_coeff)
-    #### optimizer
 
+    # optimizer
     optimizer = EigenPro(model, p, precon_data,precon_model,kz_xs_evecs,type,
                          accumulated_gradients=accumulated_gradients)
-    ### projection frequency
+    # projection frequency
     if T is None:
         T = ((tmp_centers_coeff-1)*p-s_data)//precon_data.critical_batch_size    #2
 
-    ####### configs summary
+    # configuration summary
     data = [
         [colored("Training size (n)", 'green'), X.shape[0]],
         [colored("Number of centers (p)", 'green'), Z.shape[0]],
         [colored("Ambient dimension (d)", 'green'), Z.shape[1]],
         [colored("output dimension", 'green'), Y.shape[1]],
-        [colored("# of Nystrom samples (data precond.)", 'green'), s_data],
-        [colored("# supressed eigenvalues (data precond.)", 'green'), q_data],
-        [colored("# of Nystrom samples (model precond.)", 'green'), s_model],
-        [colored("# supressed eigenvalues (model precond.)", 'green'), q_model],
+        [colored("# of Nystrom samples (data preconditioner.)", 'green'), s_data],
+        [colored("# suppressed eigenvalues (data preconditioner.)", 'green'), q_data],
+        [colored("# of Nystrom samples (model preconditioner.)", 'green'), s_model],
+        [colored("# suppressed eigenvalues (model preconditioner.)", 'green'), q_model],
         [colored("Batch Size (Critical)",'green'), precon_data.critical_batch_size],
         [colored("Scaled Learning Rate",'green'),
          f"{precon_data.scaled_learning_rate(precon_data.critical_batch_size):.2f}"],
@@ -119,7 +118,7 @@ def run_eigenpro(Z, X, Y, x, y, device,type=torch.float32, kernel=None,
                            f's_data':f'{s_data}',
                            f'q_data': f'{q_data}',
                            f's_model': f'{s_model}',
-                           f's_model': f'{s_model}',
+                           f'q_model': f'{q_model}',
                            })
 
     project_counter = 0
@@ -151,16 +150,16 @@ def run_eigenpro(Z, X, Y, x, y, device,type=torch.float32, kernel=None,
 
 
             if wandb is not None:
-                loss_test, accu_test = get_perform(model, x, y)
-                wandb.log({ 'test loss': loss_test.item(),
-                            'test accuracy': accu_test})
+                loss_test, accu_test = get_performance(model, x, y)
+                wandb.log({'test loss': loss_test.item(),
+                           'test accuracy': accu_test})
 
             project_counter += 1
 
         torch.cuda.synchronize()
         torch.cuda.empty_cache()
 
-        loss_test, accu_test = get_perform(model, x, y)
+        loss_test, accu_test = get_performance(model, x, y)
         # Print epoch summary using tabulate
         epoch_summary = [
             ["Test Loss", f"{loss_test:.10f}"],
