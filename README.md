@@ -5,7 +5,7 @@ Introducing new EigenPro version.
 ---
 
 # Benchmark Results
-In all experiments below, P refers to the number of centers (model size), d referes to ambient dimeniosn 
+In all experiments below, P refers to the number of centers (model size), d referes to ambient dimension.
 
 ## Performance Highlights
 - **Performance Boost**: EigenPro++ offers up to **100x speed** increase from the previous version (EigenPro3.0) [[1]](#References).
