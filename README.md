@@ -19,7 +19,7 @@ We used extracted features from the pretrained 'mobilenet-2' network available i
 <div align="center">
   <img src="benchmark.png" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
-  <em>Figure: Benchmark results for the CIFAR5M dataset.</em>
+  <em>Figure: Benchmark results for the CIFAR5M extratced feature dataset.</em>
 </div>
 
 ### 2. Libri speach Extracted Features on single GPU
@@ -27,9 +27,9 @@ We used extracted features from the pretrained 'mobilenet-2' network available i
 The benchmarks processed the 10 million samples for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single V100 GPU. The maximum RAM available for this experiment was 300GB, which was not sufficient for FALKON with more than 128K centers. The features are extracted through a well-trained acoustic model (a VGG+BLSTM architecture in [[7]](#References) to align the length of audio and text. This is a 301-wise classification task where different class represents different uni-gram [[8]](#References). The implementation of extracting features is based on the ESPnet toolkit [[9]](#References) .
 
 <div align="center">
-  <img src="benchmark.png" alt="CIFAR5M" style="max-width:80%;"/>
+  <img src="Libri.png" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
-  <em>Figure: Benchmark results for the CIFAR5M dataset.</em>
+  <em>Figure: Benchmark results for the Libri speach extracted feature dataset.</em>
 </div>
 
 
