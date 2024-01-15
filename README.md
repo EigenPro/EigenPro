@@ -38,7 +38,7 @@ The benchmarks processed the 10 million samples with d = 1024 for one epoch/iter
 
 ### 3. CIFAR5M raw data on single GPU
 
-We used raw features of CIFAR5M. The benchmarks processed the full 5 million samples of CIFAR5M with d = 3072 for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single V100 GPU. The maximum RAM we had access to was 300GB, which was not sufficient for FALKON with 128K centers.
+We used raw features of CIFAR5M. The benchmarks processed the full 5 million samples of CIFAR5M with d = 3072 for one epoch/iteration for all versions of EigenPro and FALKON. All of these experiments were run on a single V100 GPU. The maximum RAM we had access to was 300GB, which was not sufficient for FALKON with 256K centers.
 
 
 <div align="center">
