@@ -21,7 +21,7 @@ We used extracted features from the pretrained 'mobilenet-2' network available i
 <div align="center">
   <img src="" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
-  <em>Figure: Benchmark results for the CIFAR5M raw feature dataset.</em>
+  <em>Figure: Benchmark results for the CIFAR5M extracted feature dataset.</em>
 </div>
 
 
@@ -44,7 +44,7 @@ We used raw features of CIFAR5M. The benchmarks processed the full 5 million sam
 <div align="center">
   <img src="???" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
-  <em>Figure: Benchmark results for the CIFAR5M extracted feature dataset.</em>
+  <em>Figure: Benchmark results for the CIFAR5M raw feature dataset.</em>
 </div>
 
 
