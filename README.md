@@ -19,7 +19,7 @@ We used extracted features from the pretrained 'mobilenet-2' network available i
 
 
 <div align="center">
-  <img src="" alt="CIFAR5M" style="max-width:80%;"/>
+  <img src="CIFAR5M_EXTRACTED.png" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
   <em>Figure: Benchmark results for the CIFAR5M extracted feature dataset.</em>
 </div>
