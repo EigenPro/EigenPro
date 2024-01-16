@@ -117,8 +117,9 @@ class EigenPro:
                                    ,lr*delta, nystrom_update=True,projection=projection)
 
         del grad, batch_x, batch_p, deltap, delta
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
 
     def reset(self):
         """Reset the gradient accumulation
