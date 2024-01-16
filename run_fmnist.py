@@ -7,9 +7,9 @@ import ipdb
 import argparse
 from torch.nn.functional import one_hot
 from torch.utils.data import DataLoader
-from device import Device
-from run import run_eigenpro
-from kernels import laplacian
+from eigenpro.utils.device import Device
+from eigenpro.run import run_eigenpro
+from eigenpro.kernels import laplacian
 from torchvision import datasets, transforms
 
 
@@ -42,7 +42,7 @@ print(args)
 
 
 # Loading data for FashionMNIST
-data_root = './data/'
+data_root = os.environ["DATA_DIR"] #'./data/'
 # Define transformations
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -65,7 +65,7 @@ Y_val = one_hot(test_dataset.targets.long())
 
 
 # Eigenpro configuration
-dtype = torch.float16
+dtype = torch.float32
 n_epochs = args.epochs
 s_data, s_model, q_data, q_model = args.s_data,  args.s_model, args.q_data, args.q_model
 bandwidth = 20.0

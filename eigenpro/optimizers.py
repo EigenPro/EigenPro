@@ -1,9 +1,7 @@
 """Optimizer class and utility functions for EigenPro iteration."""
 import torch
-
-import models
-import preconditioner as pcd
-
+from .models import KernelMachine
+from .preconditioner import Preconditioner
 
 def split_ids(ids: torch.Tensor, split_id: int) -> tuple[torch.Tensor, torch.Tensor]:
     """Splits a tensor of ids into two based on a split id.
@@ -57,21 +55,27 @@ class EigenPro:
     """EigenPro optimizer for kernel machines.
 
     Args:
-        model (models.KernelMachine): A KernelMachine instance.
+        model (KernelMachine): A KernelMachine instance.
         threshold_index (int): An index used for thresholding.
-        precon (pcd.Preconditioner): Preconditioner instance that contains a
-            top kernel eigensystem for correcting the gradient.
+        precon_data (Preconditioner): Preconditioner instance that contains a
+            top kernel eigensystem for correcting the gradient for data.
+        precon_model (Preconditioner): Preconditioner instance that contains a
+            top kernel eigensystem for correcting the gradient for the projection
 
     Attributes:
-        model (models.KernelMachine): A KernelMachine instance.
-        precon (pcd.Preconditioner): A Preconditioner instance.
+        model (KernelMachine): A KernelMachine instance.
+        precon (Preconditioner): A Preconditioner instance.
         _threshold_index (int): An index used for thresholding.
     """
 
     def __init__(self,
-                 model: models.KernelMachine,
+                 model: KernelMachine,
                  threshold_index: int,
-                 precon: pcd.Preconditioner) -> None:
+                 precon_data: Preconditioner,
+                 precon_model: Preconditioner,
+                 kz_xs_evecs:torch.tensor = None,
+                 type=torch.float32,
+                 accumulated_gradients:bool = False,) -> None:
         """Initialize the EigenPro optimizer."""
         self._model = model.shallow_copy()
         self._threshold_index = threshold_index
@@ -88,11 +92,11 @@ class EigenPro:
 
 
     @property
-    def model(self) -> models.KernelMachine:
+    def model(self) -> KernelMachine:
         """Gets the active model (for training).
 
         Returns:
-            models.KernelMachine: The active model.
+            KernelMachine: The active model.
         """
         return self._model
 

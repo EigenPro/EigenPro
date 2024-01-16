@@ -4,7 +4,10 @@
 from typing import Callable
 import numpy as np
 import torch
-import svd
+from eigenpro.utils import svd
+from eigenpro.utils.extra import LRUCache
+
+import ipdb
 
 
 class KernelEigenSystem(svd.EigenSystem):

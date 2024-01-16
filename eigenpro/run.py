@@ -1,19 +1,20 @@
 import time
 import numpy as np
-from kernels import laplacian
-from preconditioner import Preconditioner
-from data import ArrayDataset
-from optimizers import EigenPro
+from .kernels import laplacian
+from .preconditioner import Preconditioner
+from .data import ArrayDataset
+from .optimizers import EigenPro
 import torch
 from torch.utils.data import DataLoader
-from utils import create_kernel_model, MapReduceEngein
+from .utils import MapReduceEngein
+from .models import create_kernel_model
 import ipdb
 from termcolor import colored
 from tabulate import tabulate
 from tqdm import tqdm
 
 
-def get_perform(model, X, Y, batch_size=1024):
+def get_performance(model, X, Y, batch_size=1024):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Ensure model is in evaluation mode
@@ -32,10 +33,10 @@ def get_perform(model, X, Y, batch_size=1024):
             batch_X, batch_Y = batch_X.to(device), batch_Y.to(device)
 
             # Forward pass
-            Y_hat = model(batch_X)
+            Y_hat = model(batch_X).to(device)
 
             # Calculate loss and accuracy
-            loss = torch.norm(Y_hat - batch_Y) / batch_Y.size(0)
+            loss = torch.norm(Y_hat - batch_Y)**2 / batch_Y.size(0)
             accuracy = torch.sum(torch.argmax(Y_hat, dim=1) == torch.argmax(batch_Y, dim=1)).item()
 
             
@@ -129,10 +130,10 @@ def run_eigenpro(Z, X, Y, x, y, device, type=torch.float32, kernel=None,
         [colored("Number of centers (p)", 'green'), Z.shape[0]],
         [colored("Ambient dimension (d)", 'green'), Z.shape[1]],
         [colored("output dimension", 'green'), Y.shape[1]],
-        [colored("# of Nystrom samples (data preconditioner.)", 'green'), s_data],
-        [colored("# suppressed eigenvalues (data preconditioner.)", 'green'), q_data],
-        [colored("# of Nystrom samples (model preconditioner.)", 'green'), s_model],
-        [colored("# suppressed eigenvalues (model preconditioner.)", 'green'), q_model],
+        [colored("# of Nystrom samples (data preconditioner)", 'green'), s_data],
+        [colored("# suppressed eigenvalues (data preconditioner)", 'green'), q_data],
+        [colored("# of Nystrom samples (model preconditioner)", 'green'), s_model],
+        [colored("# suppressed eigenvalues (model preconditioner)", 'green'), q_model],
         [colored("Batch Size (Critical)",'green'), precon_data.critical_batch_size],
         [colored("Scaled Learning Rate",'green'),
          f"{precon_data.scaled_learning_rate(precon_data.critical_batch_size):.2f}"],
@@ -195,7 +196,7 @@ def run_eigenpro(Z, X, Y, x, y, device, type=torch.float32, kernel=None,
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
-        loss_test, accu_test = get_performa(model, x, y)
+        loss_test, accu_test = get_performance(model, x, y)
         # Print epoch summary using tabulate
         epoch_summary = [
             ["Test Loss", f"{loss_test:.10f}"],

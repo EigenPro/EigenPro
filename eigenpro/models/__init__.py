@@ -2,8 +2,13 @@
 
 from typing import Callable, List, Optional
 import torch
-from concurrent.futures import ThreadPoolExecutor
-from device import Device
+from concurrent.futures import ThreadPoolExecutor,as_completed
+from ..utils.device import Device
+from ..utils.extra import LRUCache
+
+import numpy as np
+
+import ipdb
 
 
 class LRUCache():
@@ -321,84 +326,17 @@ class BlockKernelMachine(KernelMachine):
 
 
 
-class ShardedKernelMachine(KernelMachine):
-  """Kernel machine that shards its computation across multiple devices."""
+def create_kernel_model(Z,n_outputs,kernel_fn,device,type=torch.float32, tmp_centers_coeff = 2 ):
 
-  def __init__(self, kms: List[PreallocatedKernelMachine],device: 'Device' ):
-    self.device = device
-    self.shard_kms = kms
-    self.n_devices = len(kms)
-    self.n_machines = len(kms)
-    self.lru = LRUCache()
-    super().__init__(kms[0].kernel_fn, kms[0].n_outputs)
+    # ipdb.set_trace()
+    Z_list = [Z]#device(Z, strategy="divide_to_gpu")
+    kms = []
+    for i,zi in enumerate(Z_list):
+        kms.append(PreallocatedKernelMachine_optimized( kernel_fn,n_outputs,zi,type=type,device=device.devices[i],
+                                              tmp_centers_coeff=tmp_centers_coeff) )
 
+    del Z_list
+    # ipdb.set_trace()
+    return ShardedKernelMachine(kms,device)
 
-
-  def forward(self, x: torch.Tensor) -> torch.Tensor:
-    """Forward pass for the kernel machine.
-
-    Args:
-        x (torch.Tensor): input tensor of shape [n_samples, n_features].
-
-    Returns:
-        torch.Tensor: tensor of shape [n_samples, n_outputs].
-    """
-    x_broadcast = self.device(x)
-    with ThreadPoolExecutor() as executor:
-      predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[i])
-                         for i in range(self.n_devices)]
-    results = [k.result() for k in predictions]
-    p_all = 0
-    k_centers_batch_grad_all = []
-    for i,r in enumerate(results):
-      p_all += r
-      k_centers_batch_grad_all.append(self.shard_kms[i].lru.get('k_centers_batch_grad'))
-
-    self.lru.put('k_centers_batch_grad',torch.cat(k_centers_batch_grad_all) )
-    return p_all
-
-
-  def add_centers(self, centers: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
-    """Adds new centers and weights.
-
-    Args:
-      centers: Kernel centers of shape [n_centers, n_features].
-      weights: Weight parameters corresponding to the centers of shape
-               [n_centers, n_output].
-
-    Returns:
-      center_weights: Weight parameters corresponding to the added centers.
-    """
-    centers_gpus_list = self.device(centers, strategy="divide_to_gpu")
-    center_weights = weights if weights is not None else torch.zeros(
-        (centers.shape[0], self.n_outputs))
-    weights_gpus_list = self.device(center_weights, strategy="divide_to_gpu")
-    with ThreadPoolExecutor() as executor:
-      _ = [executor.submit(self.shard_kms[i].add_centers, centers_gpus_list[i]
-                           , weights_gpus_list[i]) for i in range(self.n_devices)]
-    return center_weights
-  def update_by_index(self, indices: torch.Tensor,
-                      delta: torch.Tensor) -> None:
-    """Update the model weights by index.
-
-    Here we assume that only the first block is trainable.
-
-    Args:
-      indices: Tensor of 1-D indices to select rows of weights.
-      delta: Tensor of weight update of shape [n_indices, n_outputs].
-    """
-    indices_list = []
-    delta_list = []
-    threshold_now = 0
-    threshold_before = 0
-    for i in range(self.n_devices):
-      threshold_now = threshold_now + self.shard_kms[i].orignial_size
-      gp1_indices = torch.where([indices<threshold_now])[0]
-      indices_in_gpui = indices[gp1_indices] - threshold_before
-      indices_list.append(indices_in_gpui)
-      delta_list.append(gp1_indices)
-      threshold_before = threshold_now
-    with ThreadPoolExecutor() as executor:
-      _ = [executor.submit(self.shard_kms[i].update_by_index, indices_list[i],
-                           delta_list[str(i)]) for i in range(self.n_devices)]
 
