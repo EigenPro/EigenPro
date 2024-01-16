@@ -3,8 +3,8 @@
 from typing import Callable, List, Optional
 import torch
 from concurrent.futures import ThreadPoolExecutor,as_completed
-from device import Device
-from extra import LRUCache
+from ..utils.device import Device
+from ..utils.extra import LRUCache
 
 import numpy as np
 
@@ -524,5 +524,20 @@ class BlockKernelMachine(KernelMachine):
                                           self._weight_blocks[1:]):
       copy.add_centers(center_block, weight_block)
     return copy
+
+
+
+def create_kernel_model(Z,n_outputs,kernel_fn,device,type=torch.float32, tmp_centers_coeff = 2 ):
+
+    # ipdb.set_trace()
+    Z_list = [Z]#device(Z, strategy="divide_to_gpu")
+    kms = []
+    for i,zi in enumerate(Z_list):
+        kms.append(PreallocatedKernelMachine_optimized( kernel_fn,n_outputs,zi,type=type,device=device.devices[i],
+                                              tmp_centers_coeff=tmp_centers_coeff) )
+
+    del Z_list
+    # ipdb.set_trace()
+    return ShardedKernelMachine(kms,device)
 
 

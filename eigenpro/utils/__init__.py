@@ -1,8 +1,7 @@
 """ Common utils for package EigenPro_v3.2
 """
 import torch
-from device import Device
-from models import  PreallocatedKernelMachine_optimized, ShardedKernelMachine
+from .device import Device
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
@@ -37,27 +36,3 @@ class MapReduceEngein():
 
     def reduce(self,outs):
         return [out.to(self.base_device) for out in outs]
-
-
-# collect results from all devices onto the main device
-
-
-def create_kernel_model(Z,n_outputs,kernel_fn,device,type=torch.float32, tmp_centers_coeff = 2 ):
-
-    # ipdb.set_trace()
-    Z_list = [Z]#device(Z, strategy="divide_to_gpu")
-    kms = []
-    for i,zi in enumerate(Z_list):
-        kms.append(PreallocatedKernelMachine_optimized( kernel_fn,n_outputs,zi,type=type,device=device.devices[i],
-                                              tmp_centers_coeff=tmp_centers_coeff) )
-
-    del Z_list
-    # ipdb.set_trace()
-    return ShardedKernelMachine(kms,device)
-
-
-
-
-
-
-

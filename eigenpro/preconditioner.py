@@ -4,8 +4,8 @@
 from typing import Callable
 import numpy as np
 import torch
-import svd
-from extra import LRUCache
+from eigenpro.utils import svd
+from eigenpro.utils.extra import LRUCache
 
 import ipdb
 

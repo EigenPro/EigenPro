@@ -1,9 +1,7 @@
 """Optimizer class and utility functions for EigenPro iteration."""
 import torch
-
-import models
-import preconditioner as pcd
-
+from .models import KernelMachine
+from .preconditioner import Preconditioner
 
 import ipdb
 
@@ -11,24 +9,24 @@ class EigenPro:
     """EigenPro optimizer for kernel machines.
 
     Args:
-        model (models.KernelMachine): A KernelMachine instance.
+        model (KernelMachine): A KernelMachine instance.
         threshold_index (int): An index used for thresholding.
-        precon_data (pcd.Preconditioner): Preconditioner instance that contains a
+        precon_data (Preconditioner): Preconditioner instance that contains a
             top kernel eigensystem for correcting the gradient for data.
-        precon_model (pcd.Preconditioner): Preconditioner instance that contains a
+        precon_model (Preconditioner): Preconditioner instance that contains a
             top kernel eigensystem for correcting the gradient for the projection
 
     Attributes:
-        model (models.KernelMachine): A KernelMachine instance.
-        precon (pcd.Preconditioner): A Preconditioner instance.
+        model (KernelMachine): A KernelMachine instance.
+        precon (Preconditioner): A Preconditioner instance.
         _threshold_index (int): An index used for thresholding.
     """
 
     def __init__(self,
-                 model: models.KernelMachine,
+                 model: KernelMachine,
                  threshold_index: int,
-                 precon_data: pcd.Preconditioner,
-                 precon_model: pcd.Preconditioner,
+                 precon_data: Preconditioner,
+                 precon_model: Preconditioner,
                  kz_xs_evecs:torch.tensor = None,
                  type=torch.float32,
                  accumulated_gradients:bool = False,) -> None:
@@ -55,11 +53,11 @@ class EigenPro:
 
 
     @property
-    def model(self) -> models.KernelMachine:
+    def model(self) -> KernelMachine:
         """Gets the active model (for training).
 
         Returns:
-            models.KernelMachine: The active model.
+            KernelMachine: The active model.
         """
         return self._model
 
