@@ -52,7 +52,7 @@ We used raw features of CIFAR5M. The benchmarks processed the full 5 million sam
 We utilized the raw features from the CIFAR5M dataset. In our benchmarks, we processed a subset consisting of **1 million** samples from CIFAR5M, each with a dimensionality of d = 3072, for a single epoch using EigenPro++. These results demonstrate that EigenPro++ offers relatively fast performance, even when operating on a CPU.
 
 <div align="center">
-  <img src="imgs/CPU.png" alt="CIFAR5M-CPU" style="max-width:80%;"/>
+  <img src="imgs/CPU.png" alt="CIFAR5M-CPU" style="max-width:70%;"/>
   <br>
   <em>Figure: Benchmark results for the CIFAR5M raw feature dataset on CPU.</em>
 </div>
