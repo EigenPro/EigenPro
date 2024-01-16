@@ -62,6 +62,19 @@ We utilized the raw features from the CIFAR5M dataset. In our benchmarks, we pro
 
 # Tutorial: How to Use This Repository
 
+## Installation
+
+```
+pip install git+ssh://git@github.com/EigenPro/EigenPro.git
+```
+
+### Test the installation
+```python
+import eigenpro
+print(eigenpro.__version__)
+```
+
+** TODO: Edit this section. I would like to present [a test like this one](https://github.com/EigenPro/EigenPro-pytorch?tab=readme-ov-file#test-installation-with-laplacian-kernel)
 Follow these steps to get started with this repository:
 
 1. **Data Preparation**
