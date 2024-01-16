@@ -42,7 +42,7 @@ We used raw features of CIFAR5M. The benchmarks processed the full 5 million sam
 
 
 <div align="center">
-  <img src="???" alt="CIFAR5M" style="max-width:80%;"/>
+  <img src="cifar5m_raw.png" alt="CIFAR5M" style="max-width:80%;"/>
   <br>
   <em>Figure: Benchmark results for the CIFAR5M raw feature dataset on a single GPU(V100).</em>
 </div>
