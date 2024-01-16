@@ -85,7 +85,7 @@ Follow these steps to get started with this repository:
 4. Giacomo Meanti, Luigi Carratino, Lorenzo Rosasco, Alessandro Rudi, “Kernel methods through the roof: handling billions of points efficiently,” Advances in Neural Information Processing Systems, 2020. [Link](https://proceedings.neurips.cc/paper_files/paper/2020/file/a59afb1b7d82ec353921a55c579ee26d-Paper.pdf)
 5. Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, “FALKON: An optimal large scale kernel method,” Advances in Neural Information Processing Systems, 2017. [Link](https://papers.nips.cc/paper_files/paper/2017/file/05546b0e38ab9175cd905eebcc6ebb76-Paper.pdf)
 6. Ulysse Marteau-Ferey, Francis Bach, Alessandro Rudi, “Globally Convergent Newton Methods for Ill-conditioned Generalized Self-concordant Losses,” Advances in Neural Information Processing Systems, 2019. [Link](https://arxiv.org/pdf/1907.01771.pdf)
-7. Hui, L. and Belkin, M. Evaluation of neural architectures trained with square loss vs cross-entropy in classificationtasks. In International Conference on Learning Representations, 2021. [Link](https://arxiv.org/pdf/1907.01771.pdf](https://arxiv.org/pdf/2006.07322.pdf)https://arxiv.org/pdf/2006.07322.pdf)
+7. Hui, L. and Belkin, M. "Evaluation of Neural Architectures Trained with Square Loss vs Cross-Entropy in Classification Tasks." In International Conference on Learning Representations, 2021. [Link](https://arxiv.org/abs/2006.07322)
 8. Jurafsky, D. Speech & language processing. Pearson Education India, 2000
 9. Watanabe, et. al. ESPnet: Toward large kernel models End-to-end speech processing toolkit. In Proceedingsof Interspeech, pp. 2207–2211, 2018. doi: 10.21437/Interspeech.2018-1456 [Link](https://www.isca-speech.org/archive/interspeech_2018/watanabe18_interspeech.html)
 
