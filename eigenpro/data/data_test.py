@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import torch
-from data import ArrayDataset
+from array_dataset import ArrayDataset
 
 class TestArrayDataset(unittest.TestCase):
 
