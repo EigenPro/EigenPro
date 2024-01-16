@@ -129,8 +129,9 @@ def run_eigenpro(Z, X, Y, x, y, device, type=torch.float32, kernel=None,
         for t,(x_batch,y_batch,id_batch) in epoch_progress:
 
             optimizer.step(x_batch, y_batch, id_batch)
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+                torch.cuda.empty_cache()
 
 
             if ( (project_counter + 1) % T == 0 or (t==len(train_dataloader)-1) ) and accumulated_gradients:
@@ -146,7 +147,8 @@ def run_eigenpro(Z, X, Y, x, y, device, type=torch.float32, kernel=None,
                 model.update_by_index(torch.tensor(list(range(p))), update_projection)
                 model.reset()
                 optimizer.reset()
-                torch.cuda.synchronize()
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
 
 
             if wandb is not None:
@@ -155,9 +157,9 @@ def run_eigenpro(Z, X, Y, x, y, device, type=torch.float32, kernel=None,
                            'test accuracy': accu_test})
 
             project_counter += 1
-
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
 
         loss_test, accu_test = get_performance(model, x, y)
         # Print epoch summary using tabulate
