@@ -137,9 +137,44 @@ class EigenPro:
         self.grad_accumulation = self.grad_accumulation + k_centers_batch_grad - \
                                  self.k_centers_nystroms_mult_eigenvecs @ deltap
 
-        if in_batch_size:
-            self.model.update_by_index(in_ids, in_delta)
-        if out_batch_size:
-            self.model.add_centers(batch_x[out_ids], out_delta)
+        if self.grad_accumulation is None or projection:
+            self.model.update_by_index(batch_ids, -lr *grad,projection=projection )
+        else:
+            k_centers_batch_all = self.model.lru.get('k_centers_batch')
+            self.model.lru.cache.clear()
+            kgrads = []
+            for k in k_centers_batch_all:
+                kgrads.append((k @ grad.to(k.device)))
+            k_centers_batch_grad = torch.cat(kgrads)  ##  K(bathc,Z) (f-y)
+
+            self.grad_accumulation = self.grad_accumulation - lr*\
+                                     ( k_centers_batch_grad -
+                                       (self.k_centers_nystroms_mult_eigenvecs @
+                                        deltap) )
+
+            self.model.add_centers(batch_x, -lr*grad)
+            # print(f'used capacity:{self.model.shard_kms[0].used_capacity}')
+
+            del k_centers_batch_grad, kgrads, k_centers_batch_all,batch_y
+
+
+
+
+        self.model.update_by_index(torch.tensor(list(range(self.precon_model._centers.shape[0])))
+                                   ,lr*delta, nystrom_update=True,projection=projection)
+
+        del grad, batch_x, batch_p, deltap, delta
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
+
+    def reset(self):
+        """Reset the gradient accumulation
+        Args:
+            None
+        return:
+            None
+        """
+        self.grad_accumulation = 0
 
         self.precon.update(delta, len(batch_ids))
