@@ -40,9 +40,9 @@ class Device():
         return tensor_segments
 
     @staticmethod
-    def create(use_gpu_if_availabel=True) -> 'Device':
+    def create(use_gpu_if_available=True) -> 'Device':
         """Creates a Device instance for all GPUs or CPU if there is no GPU."""
-        if torch.cuda.is_available() and use_gpu_if_availabel:
+        if torch.cuda.is_available() and use_gpu_if_available:
             device_list = [torch.device(f'cuda:{i}')
                            for i in range(torch.cuda.device_count())]
         else:
