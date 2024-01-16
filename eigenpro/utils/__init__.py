@@ -4,11 +4,10 @@ import torch
 from .device import Device
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
-
+import argparse
 import ipdb
 
 DEFAULT_DTYPE = torch.float32
-
 
       
 class MapReduceEngein():
@@ -36,3 +35,15 @@ class MapReduceEngein():
 
     def reduce(self,outs):
         return [out.to(self.base_device) for out in outs]
+
+
+def parse_cmd_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n", type=int, help="Number of data points",default=50_000)
+    parser.add_argument("--p", type=int, help="Model size",default=20_000)
+    parser.add_argument("--s_data", type=int, help="s_data",default=2_000)
+    parser.add_argument("--s_model", type=int, help="s_model",default=2_000)
+    parser.add_argument("--q_data", type=int, help="q_data",default=100)
+    parser.add_argument("--q_model", type=int, help="q_model",default=100)
+    parser.add_argument("--epochs", type=int, help="q_model",default=2)
+    return parser.parse_args()    

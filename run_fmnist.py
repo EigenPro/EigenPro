@@ -4,42 +4,15 @@ import os
 import wandb
 import numpy as np
 import ipdb
-import argparse
 from torch.nn.functional import one_hot
 from torch.utils.data import DataLoader
 from eigenpro.utils.device import Device
 from eigenpro.run import run_eigenpro
 from eigenpro.kernels import laplacian
 from torchvision import datasets, transforms
+from eigenpro.utils import parse_cmd_args
 
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--n", type=int, help="Number of data points",default=50_000)
-parser.add_argument("--p", type=int, help="Model size",default=20_000)
-parser.add_argument("--s_data", type=int, help="s_data",default=2_000)
-parser.add_argument("--s_model", type=int, help="s_model",default=2_000)
-parser.add_argument("--q_data", type=int, help="q_data",default=100)
-parser.add_argument("--q_model", type=int, help="q_model",default=100)
-parser.add_argument("--epochs", type=int, help="q_model",default=2)
-args = parser.parse_args()
-print(args)
-
-
-# Wandb: to use wandb you can use the template below and pass the `run` to `run_eigenpro` below
-#######################################################################
-# wandb_init = {}
-# wandb_init["project_name"] ="---"
-# wandb_init["mode"]  = 'online'
-# wandb_init["key"]  = "----"
-# wandb_init["org"] = "----"
-# os.environ["WANDB_API_KEY"] = wandb_init['key']
-# os.environ["WANDB_MODE"] = wandb_init['mode']  # online or offline
-# run = wandb.init(project=wandb_init['project_name'], \
-#                  entity=wandb_init['org'])
-# run.name = f'---'
-# run.save()
-#######################################################################
-
+args = parse_cmd_args()
 
 # Loading data for FashionMNIST
 data_root = os.environ["DATA_DIR"] #'./data/'
