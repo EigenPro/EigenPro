@@ -14,7 +14,7 @@ from eigenpro.data.utils import load_fmnist
 
 args = parse_cmd_args()
 
-X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
+X_train, X_test, Y_train, Y_test = load_fmnist('./data', args.n_train, args.n_test)
 
 # Eigenpro configuration
 dtype = torch.float32
