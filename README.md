@@ -24,9 +24,10 @@ X_train, X_test = torch.randn(n//2, d), torch.randn(n//2, d)
 W_star = torch.randn(d, c)
 Y_train, Y_test = X_train @ W_star, X_test @ W_star
 
+dtype=torch.float32
 kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
 device = Device.create(use_gpu_if_available=False)
-model = create_kernel_model(Z, c, kernel_fn, device, dtype=torch.float32, tmp_centers_coeff=2)
+model = create_kernel_model(Z, c, kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
 
 model2 = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,
                      s_data=sd, s_model=sm, q_data=qd, q_model=qm, epochs=2, accumulated_gradients=True)
