@@ -23,7 +23,13 @@ class ShardedKernelMachine(KernelMachine):
 
   @property
   def centers(self):
-    return torch.cat([km._centers[:km.size].to(self.device.device_base) for km in self.shard_kms])
+    """Return the centers"""
+    return torch.cat([km.centers.to(self.device.device_base) for km in self.shard_kms])
+
+  @property
+  def weights(self):
+    """Return the weights"""
+    return torch.cat([km.weights.to(self.device.device_base) for km in self.shard_kms])
 
 
 
