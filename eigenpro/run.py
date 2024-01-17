@@ -57,21 +57,21 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
 
     # preconditioner
-    print("--- initializing preconditioners ---")
     nys_model = model.centers[0][0:s_model] # we are assuming first s_model of Z are being used as Nystrom
                              # samples for the projection problem
     nys_data_indices = np.random.choice(X.shape[0], s_data, replace=False)
     nys_data = X[nys_data_indices, :].to(device_base)
-    print("--- calling Data Preconditioner constructor ---")
+
     data_preconditioner = Preconditioner(kernel_fn, nys_data, q_data)
-    print("--- calling Model Preconditioner constructor ---")
     model_preconditioner = Preconditioner(kernel_fn, nys_model, q_model)
-    print("--- preconditioner initialized ---")
-    kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
-    print("--- kernel kz_xs_evecs evaluated ---")
+                   
     data_preconditioner.change_type(dtype=dtype)
     model_preconditioner.change_type(dtype=dtype)
-    print("--- preconditioners constructed ---")
+                   
+    kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
+
+
+
 
 
     # data loader
