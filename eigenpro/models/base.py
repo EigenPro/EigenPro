@@ -1,6 +1,6 @@
 import torch
 from typing import Callable, List, Optional
-from abs import abstractmethod
+from abc import abstractmethod
 
 
 class KernelMachine:
