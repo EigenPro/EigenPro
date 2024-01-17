@@ -1,6 +1,6 @@
 """Optimizer class and utility functions for EigenPro iteration."""
 import torch
-from .models import KernelMachine
+from .models.base import KernelMachine
 from .preconditioner import Preconditioner
 
 import ipdb

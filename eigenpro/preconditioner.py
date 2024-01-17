@@ -5,7 +5,7 @@ from typing import Callable
 import numpy as np
 import torch
 from eigenpro.utils import svd
-from eigenpro.utils.extra import LRUCache
+from eigenpro.utils.cache import LRUCache
 
 import ipdb
 
@@ -63,7 +63,7 @@ class KernelEigenSystem(svd.EigenSystem):
         """
         return self._normalized_ratios
 
-    def change_type(self,type= torch.float32):
+    def change_type(self, dtype=torch.float32):
         """Convert to lower precision
         Args:
             type (torch.type): it is either torch.float32 or torch.float16
@@ -72,8 +72,8 @@ class KernelEigenSystem(svd.EigenSystem):
         Raises:
             None: This method is not expected to raise any exceptions.
         """
-        self._vectors = self._vectors.to(type)
-        self._normalized_ratios =  self._normalized_ratios.to(type)
+        self._vectors = self._vectors.to(dtype)
+        self._normalized_ratios =  self._normalized_ratios.to(dtype)
 
 
 def top_eigensystem(samples: torch.Tensor, q: int,
@@ -193,7 +193,7 @@ class Preconditioner:
         normalized_ratios = self._eigensys.normalized_ratios
         return self._kernel_fn(batch,self.centers)@ (normalized_ratios*eigenvectors)
 
-    def change_type(self,type = torch.float32):
+    def change_type(self, dtype=torch.float32):
         """Converting to half precision
         Args:
             type (torch.type): it is either torch.float32 or torch.float16
@@ -202,7 +202,7 @@ class Preconditioner:
         Raises:
             None: This method is not expected to raise any exceptions.
         """
-        self._eigensys.change_type(type)
-        self._centers = self.centers.to(type)
+        self._eigensys.change_type(dtype)
+        self._centers = self.centers.to(dtype)
 
 
