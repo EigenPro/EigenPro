@@ -69,6 +69,16 @@ class PreallocatedKernelMachine_optimized(KernelMachine):
     """Return the number of centers."""
     return self.used_capacity
 
+  @property
+  def centers(self) -> int:
+    """Return the centers."""
+    return self._centers[:self.size]
+
+  @property
+  def weights(self) -> int:
+    """Return the weights."""
+    return self._weights[:self.size]
+
   def forward(self, x: torch.Tensor, projection:bool = False, train=True) -> torch.Tensor:
     """Forward pass for the kernel machine.
 
