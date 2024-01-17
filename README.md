@@ -2,6 +2,36 @@
 
 Introducing new EigenPro version.
 
+## Installation
+
+```
+pip install git+ssh://git@github.com/EigenPro/EigenPro.git@extracted_model
+```
+
+### Test the installation
+```python
+import torch
+from eigenpro.utils.device import Device
+from eigenpro.kernels import laplacian
+from eigenpro.models import create_kernel_model
+from eigenpro.run import run_eigenpro
+
+n, p, d, c = 500, 100, 5, 2
+sd, sm, qd, qm = 10, 10, 3, 3
+
+Z = torch.randn(p, d)
+X_train, X_test = torch.randn(n//2, d), torch.randn(n//2, d)
+W_star = torch.randn(d, c)
+Y_train, Y_test = X_train @ W_star, X_test @ W_star
+
+kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
+device = Device.create(use_gpu_if_available=False)
+model = create_kernel_model(Z, c, kernel_fn, device, dtype=torch.float32, tmp_centers_coeff=2)
+
+model2 = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,
+                     s_data=sd, s_model=sm, q_data=qd, q_model=qm, epochs=2, accumulated_gradients=True)
+print("Laplacian test complete!")
+```
 ---
 
 # Benchmark Results
@@ -62,39 +92,7 @@ We utilized the raw features from the CIFAR5M dataset. In our benchmarks, we pro
 
 # Tutorial: How to Use This Repository
 
-## Installation
 
-```
-pip install git+ssh://git@github.com/EigenPro/EigenPro.git@extracted_model
-```
-
-### Test the installation
-```python
-import torch
-from eigenpro.utils.device import Device
-from eigenpro.kernels import laplacian
-from eigenpro.models import create_kernel_model
-from eigenpro.run import run_eigenpro
-
-n, p, d, c = 500, 100, 5, 2
-sd, sm, qd, qm = 10, 10, 3, 3
-
-Z = torch.randn(p, d)
-X_train = torch.randn(n//2, d)
-X_test = torch.randn(n//2, d)
-W_star = torch.randn(d, c)
-Y_train = X_train @ W_star
-Y_test = X_test @ W_star
-
-dtype = torch.float32
-kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
-device = Device.create(use_gpu_if_available=False)
-model = create_kernel_model(Z, c, kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
-model2 = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,
-                     s_data=sd, s_model=sm, q_data=qd, q_model=qm,
-                     wandb=None, epochs=2,accumulated_gradients=True)
-print("Laplacian test complete!")
-```
 
 ** TODO: Edit this section. I would like to present [a test like this one](https://github.com/EigenPro/EigenPro-pytorch?tab=readme-ov-file#test-installation-with-laplacian-kernel)
 Follow these steps to get started with this repository:
