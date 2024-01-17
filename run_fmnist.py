@@ -27,18 +27,18 @@ device_base = device.device_base
 # Eigenpro
 # Note: if you want to use the whole X as your centers switch to EigenPro2.0 which is a faster method
 if args.model_size == -1:
-    model = run_eigenpro(X_train, X_train, Y_train, X_test, Y_test, device, type=dtype, kernel=kernel_fn,
-                         s_data=args.s_data, s_model=args.s_model, 
-                         q_data=args.q_data, q_model=args.q_model,
-                         tmp_centers_coeff=2, wandb=None, epochs=args.epochs, accumulated_gradients=False)
+    accumulated_gradients = False
+    Z = X_train
 else:
     # In case you want to use a subset of data as model centers, define Z as tensor of your centers
     centers_set_indices = np.random.choice(args.n_train, args.model_size, replace=False)
     Z = X_train[centers_set_indices,:]
-    model = run_eigenpro(Z, X_train, Y_train, X_test, Y_test, device, type=dtype, kernel=kernel_fn,
-                         s_data=args.s_data, s_model=args.s_model, 
-                         q_data=args.q_data, q_model=args.q_model,
-                         wandb=None, epochs=args.epochs)
+    accumulated_gradients = True
+
+model = run_eigenpro(Z, X_train, Y_train, X_test, Y_test, device, type=dtype, kernel=kernel_fn,
+                     s_data=args.s_data, s_model=args.s_model, 
+                     q_data=args.q_data, q_model=args.q_model,
+                     wandb=None, epochs=args.epochs,accumulated_gradients=accumulated_gradients)
 
 
 
