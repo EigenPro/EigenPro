@@ -34,13 +34,13 @@ class KernelMachine:
   @property
   @abstractmethod
   def weights(self) -> int:
-    """Return the weights."
+    """Return the weights."""
     raise NotImplementedError("Implement this in a subclass")
 
   @property
   @abstractmethod
   def centers(self) -> torch.Tensor:
-    """Return the centers."
+    """Return the centers."""
     raise NotImplementedError("Implement this in a subclass")
   
 
