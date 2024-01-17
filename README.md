@@ -76,7 +76,7 @@ from eigenpro.kernels import laplacian
 from eigenpro.models import create_kernel_model
 from eigenpro.run import run_eigenpro
 
-n, p, d, c = 5000, 100, 5, 2
+n, p, d, c = 500, 100, 5, 2
 sd, sm, qd, qm = 10, 10, 3, 3
 
 Z = torch.randn(p, d)
