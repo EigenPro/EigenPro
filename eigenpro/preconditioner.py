@@ -5,7 +5,7 @@ from typing import Callable
 import numpy as np
 import torch
 from eigenpro.utils import svd
-from eigenpro.utils.extra import LRUCache
+from eigenpro.utils.cache import LRUCache
 
 import ipdb
 
@@ -57,6 +57,18 @@ class KernelEigenSystem(svd.EigenSystem):
             np.ndarray: The computed ratios.
         """
         return self._normalized_ratios
+
+    def change_type(self, dtype=torch.float32):
+        """Convert to lower precision
+        Args:
+            type (torch.type): it is either torch.float32 or torch.float16
+        Returns:
+            None
+        Raises:
+            None: This method is not expected to raise any exceptions.
+        """
+        self._vectors = self._vectors.to(dtype)
+        self._normalized_ratios =  self._normalized_ratios.to(dtype)
 
 
 def top_eigensystem(samples: torch.Tensor, q: int,
@@ -167,7 +179,30 @@ class Preconditioner:
 
         return vtkg,vdvtkg
 
-    def update(self, delta: torch.Tensor, batch_size: int) -> None:
-        """Updates the weight parameters."""
-        lr = self.scaled_learning_rate(batch_size)
-        self._weights.add_(lr * delta)
+    def eval_vec(self,batch):
+        """Computes K(X_s,batch)@(D*E) which is a part of correction term
+        Args:
+            batch (torch.Tensor): Of shape `[, n_features]`.
+        Returns:
+            torch.Tensor: Of Shape `[batch_size, q]`
+
+        Raises:
+            None: This method is not expected to raise any exceptions.
+        """
+        eigenvectors = self._eigensys.vectors
+        normalized_ratios = self._eigensys.normalized_ratios
+        return self._kernel_fn(batch,self.centers)@ (normalized_ratios*eigenvectors)
+
+    def change_type(self, dtype=torch.float32):
+        """Converting to half precision
+        Args:
+            type (torch.type): it is either torch.float32 or torch.float16
+        Returns:
+            None
+        Raises:
+            None: This method is not expected to raise any exceptions.
+        """
+        self._eigensys.change_type(dtype)
+        self._centers = self.centers.to(dtype)
+
+

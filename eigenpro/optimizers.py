@@ -1,6 +1,6 @@
 """Optimizer class and utility functions for EigenPro iteration."""
 import torch
-from .models import KernelMachine
+from .models.base import KernelMachine
 from .preconditioner import Preconditioner
 
 def split_ids(ids: torch.Tensor, split_id: int) -> tuple[torch.Tensor, torch.Tensor]:
