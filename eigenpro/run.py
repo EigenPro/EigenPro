@@ -67,7 +67,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     print("--- calling Model Preconditioner constructor ---")
     model_preconditioner = Preconditioner(kernel_fn, nys_model, q_model)
     print("--- preconditioner initialized ---")
-    kz_xs_evecs = data_preconditioner.eval_vec(model.centers).to(device_base).type(dtype)
+    kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
     print("--- kernel kz_xs_evecs evaluated ---")
     data_preconditioner.change_type(dtype=dtype)
     model_preconditioner.change_type(dtype=dtype)
@@ -137,7 +137,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
 
             if ( (project_counter + 1) % T == 0 or (t==len(train_dataloader)-1) ) and accumulated_gradients:
-                projection_dataset = ArrayDataset(model.centers, optimizer.grad_accumulation)
+                projection_dataset = ArrayDataset(model.centers[0], optimizer.grad_accumulation)
                 projection_loader = DataLoader(projection_dataset,
                                                batch_size=model_preconditioner.critical_batch_size, shuffle=True)
                 for _ in range(1):
