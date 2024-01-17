@@ -89,7 +89,6 @@ def top_eigensystem(samples: torch.Tensor, q: int,
 
     """
     n_sample = samples.shape[0]
-    print("---- calculating kernel matrix for eigensystem ----")
     kernel_mat = kernel_fn(samples, samples)#.cpu().data.numpy()
     # Obtains eigensystem for the normalized kernel matrix.
     eigensys = top_q_eig(kernel_mat / n_sample, q)
