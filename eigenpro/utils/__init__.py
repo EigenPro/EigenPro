@@ -32,7 +32,6 @@ class MapReduceEngein():
         # # call f on each device
         return outs
 
-
     def reduce(self,outs):
         return [out.to(self.base_device) for out in outs]
 

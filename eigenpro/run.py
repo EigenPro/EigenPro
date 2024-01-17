@@ -57,33 +57,38 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
 
     # preconditioner
-    nys_model = model.centers[0:s_model] # we are assuming first s_model of Z are being used as Nystrom
+    print("--- initializing preconditioners ---")
+    nys_model = model.centers[0][0:s_model] # we are assuming first s_model of Z are being used as Nystrom
                              # samples for the projection problem
     nys_data_indices = np.random.choice(X.shape[0], s_data, replace=False)
-    nys_data = X[nys_data_indices, :]
-
-    precon_data = Preconditioner(kernel_fn, nys_data, q_data)
-    precon_model = Preconditioner(kernel_fn, nys_model, q_model)
-    kz_xs_evecs = precon_data.eval_vec(model.centers).to(device_base).type(dtype)
-    precon_data.change_type(dtype=dtype)
-    precon_model.change_type(dtype=dtype)
+    nys_data = X[nys_data_indices, :].to(device_base)
+    print("--- calling Data Preconditioner constructor ---")
+    data_preconditioner = Preconditioner(kernel_fn, nys_data, q_data)
+    print("--- calling Model Preconditioner constructor ---")
+    model_preconditioner = Preconditioner(kernel_fn, nys_model, q_model)
+    print("--- preconditioner initialized ---")
+    kz_xs_evecs = data_preconditioner.eval_vec(model.centers).to(device_base).type(dtype)
+    print("--- kernel kz_xs_evecs evaluated ---")
+    data_preconditioner.change_type(dtype=dtype)
+    model_preconditioner.change_type(dtype=dtype)
+    print("--- preconditioners constructed ---")
 
 
     # data loader
     dataset = ArrayDataset(X, Y)
 
-    batch_size = precon_data.critical_batch_size
+    batch_size = data_preconditioner.critical_batch_size
     train_dataloader = DataLoader(dataset, batch_size=batch_size , shuffle=True)
 
     # model initilization
     # model = create_kernel_model(Z, d_out, kernel_fn, device, dtype=dtype, tmp_centers_coeff=tmp_centers_coeff)
 
     # optimizer
-    optimizer = EigenPro(model, p, precon_data,precon_model,kz_xs_evecs,dtype,
+    optimizer = EigenPro(model, p, data_preconditioner,model_preconditioner,kz_xs_evecs,dtype,
                          accumulated_gradients=accumulated_gradients)
     # projection frequency
     if T is None:
-        T = ((tmp_centers_coeff-1)*p-s_data)//precon_data.critical_batch_size    #2
+        T = ((tmp_centers_coeff-1)*p-s_data)//data_preconditioner.critical_batch_size    #2
 
     # configuration summary
     data = [
@@ -95,10 +100,10 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         [colored("size of model preconditioner", 'green'), s_model],
         [colored("level of model preconditioner", 'green'), q_model],
         [colored("size of training dataset", 'green'), X.shape[0]],
-        [colored("critical batch size",'green'), precon_data.critical_batch_size],
+        [colored("critical batch size",'green'), data_preconditioner.critical_batch_size],
         [colored("batch size",'green'), " "],
         [colored("scaled learning rate",'green'),
-         f"{precon_data.scaled_learning_rate(precon_data.critical_batch_size):.2f}"],
+         f"{data_preconditioner.scaled_learning_rate(data_preconditioner.critical_batch_size):.2f}"],
         [colored("projection interval (in batches)",'green'), T]
     ]
     # Table Formatting
@@ -134,7 +139,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
             if ( (project_counter + 1) % T == 0 or (t==len(train_dataloader)-1) ) and accumulated_gradients:
                 projection_dataset = ArrayDataset(model.centers, optimizer.grad_accumulation)
                 projection_loader = DataLoader(projection_dataset,
-                                               batch_size=precon_model.critical_batch_size, shuffle=True)
+                                               batch_size=model_preconditioner.critical_batch_size, shuffle=True)
                 for _ in range(1):
                     for z_batch, grad_batch, id_batch in projection_loader:
                         optimizer.step(z_batch, grad_batch, id_batch, projection=True)
