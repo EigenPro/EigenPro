@@ -2,11 +2,11 @@ import time
 import numpy as np
 from .kernels import laplacian
 from .preconditioner import Preconditioner
-from .data import ArrayDataset
+from .data.array_dataset import ArrayDataset
 from .optimizers import EigenPro
 import torch
 from torch.utils.data import DataLoader
-from .utils import MapReduceEngein
+from .utils.mapreduce import MapReduceEngine
 from .models import create_kernel_model
 from termcolor import colored
 from tabulate import tabulate

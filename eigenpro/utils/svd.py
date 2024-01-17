@@ -96,7 +96,6 @@ def top_q_eig(matrix: torch.Tensor, q: int) -> EigenSystem:
     assert matrix.shape[0] == matrix.shape[1], "Matrix should be square."
 
     n_sample = matrix.shape[0]
-    print("----- calculating top eigenvectors -----")
     eigenvalues, eigenvectors = linalg.eigh(
         matrix, eigvals=(n_sample - q-1, n_sample - 1))
     print("----- transferring into compatible format -----")

@@ -7,14 +7,13 @@ from torch.utils.data import DataLoader
 from eigenpro.utils.device import Device
 from eigenpro.run import run_eigenpro
 from eigenpro.kernels import laplacian
-from eigenpro.utils import parse_cmd_args
+from eigenpro.utils.cmd import parse_cmd_args
 from eigenpro.data.utils import load_fmnist
 from eigenpro.models import create_kernel_model
 
 args = parse_cmd_args()
 
 X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
-print("data loaded")
 
 # Eigenpro configuration
 dtype = torch.float32
@@ -35,9 +34,7 @@ else:
     centers_set_indices = np.random.choice(args.n_train, args.model_size, replace=False)
     Z = X_train[centers_set_indices,:]
 
-print("creating model")
 model = create_kernel_model(Z, Y_train.shape[-1], kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
-print("model created")
 
 model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,
                      s_data=args.s_data, s_model=args.s_model, 
