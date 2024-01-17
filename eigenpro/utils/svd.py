@@ -98,7 +98,6 @@ def top_q_eig(matrix: torch.Tensor, q: int) -> EigenSystem:
     n_sample = matrix.shape[0]
     eigenvalues, eigenvectors = linalg.eigh(
         matrix, eigvals=(n_sample - q-1, n_sample - 1))
-    print("----- transferring into compatible format -----")
     eigenvalues = torch.from_numpy(np.flip(eigenvalues).copy()).to(device)
     eigenvectors = torch.from_numpy(np.fliplr(eigenvectors).copy()).to(device)
 
