@@ -1,6 +1,6 @@
 import torch
 from typing import Callable, List, Optional
-
+from abs import abstractmethod
 
 
 class KernelMachine:
@@ -30,6 +30,19 @@ class KernelMachine:
   @property
   def size(self) -> int:
     return self._size
+
+  @property
+  @abstractmethod
+  def weights(self) -> int:
+    """Return the weights."
+    raise NotImplementedError("Implement this in a subclass")
+
+  @property
+  @abstractmethod
+  def centers(self) -> torch.Tensor:
+    """Return the centers."
+    raise NotImplementedError("Implement this in a subclass")
+  
 
   def __call__(self, *inputs):
     """To add compatibility with other PyTorch models"""
