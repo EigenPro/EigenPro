@@ -1,5 +1,5 @@
 '''Utility functions for performing fast SVD.'''
-
+import torch
 import numpy as np
 import scipy.linalg as linalg
 
@@ -73,14 +73,14 @@ class EigenSystem:
         """
         return self._vectors[:,:self.size]
 
-def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
+def top_q_eig(matrix: torch.Tensor, q: int) -> EigenSystem:
     """Finds the top `q` eigenvalues and eigenvectors of matrix.
 
     This function returns the top `q + 1` eigenvalues but only the top `q`
     eigenvectors.
 
     Args:
-        matrix (np.ndarray): Symmetric matrix of shape (n, n).
+        matrix (torch.Tensor): Symmetric matrix of shape (n, n).
         q (int): Number of top eigenvalues/eigenvectors to retrieve.
 
     Returns:
@@ -90,17 +90,19 @@ def top_q_eig(matrix: np.ndarray, q: int) -> EigenSystem:
     Raises:
         AssertionError: If the matrix is not square.
     """
-
+    device = matrix.device
+    matrix = matrix.cpu().data.numpy()
     if not isinstance(matrix, np.ndarray):
         matrix = np.array(matrix)
 
     assert matrix.shape[0] == matrix.shape[1], "Matrix should be square."
 
     n_sample = matrix.shape[0]
+    print("----- calculating top eigenvectors -----")
     eigenvalues, eigenvectors = linalg.eigh(
         matrix, eigvals=(n_sample - q-1, n_sample - 1))
-
-    eigenvalues = np.flip(eigenvalues).copy()
-    eigenvectors = np.fliplr(eigenvectors).copy()
+    print("----- transferring into compatible format -----")
+    eigenvalues = torch.from_numpy(np.flip(eigenvalues).copy()).to(device)
+    eigenvectors = torch.from_numpy(np.fliplr(eigenvectors).copy()).to(device)
 
     return EigenSystem(eigenvalues, eigenvectors)

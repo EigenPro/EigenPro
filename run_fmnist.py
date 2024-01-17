@@ -14,13 +14,14 @@ from eigenpro.models import create_kernel_model
 args = parse_cmd_args()
 
 X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
+print("data loaded")
 
 # Eigenpro configuration
 dtype = torch.float32
 kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
 # Note: if you want to run on CPU, change `dtype` to `torch.float32` since
 # PyTorch does not support half-precision multiplication on CPU
-device = Device.create(use_gpu_if_available=False)
+device = Device.create(use_gpu_if_available=True)
 
 
 # Eigenpro
@@ -34,7 +35,9 @@ else:
     centers_set_indices = np.random.choice(args.n_train, args.model_size, replace=False)
     Z = X_train[centers_set_indices,:]
 
+print("creating model")
 model = create_kernel_model(Z, Y_train.shape[-1], kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
+print("model created")
 
 model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,
                      s_data=args.s_data, s_model=args.s_model, 
