@@ -30,7 +30,7 @@ class BlockKernelMachine(KernelMachine):
       centers: A tensor of kernel centers of shape [n_centers, n_features].
       weights: An optional tensor of weights of shape [n_centers, n_outputs].
     """
-    super().__init__(kernel_fn, n_outputs)
+    super().__init__(kernel_fn, n_outputs, centers.shape[0])
     self.original_size = centers.shape[0]
     self._kernel_fn = kernel_fn
     self._n_outputs = n_outputs
