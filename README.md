@@ -4,8 +4,8 @@ It applies a projected stochastic gradient method with dual preconditioning to e
 It is currently based on a PyTorch backend.
 
 ## Features
-- *Blazing fast*:
-- *Scalable*: easily scales to models with 1 Million centers with just 1 GPU.
+- *Blazing fast*: ~20 minutes on a single A100 GPU to train a model with > 1 Million centers for 1 epoch over 5 Million samples
+- *Scalable*: easily scales to models with > 1 Million centers with just 1 GPU.
 - (coming soon!) multi GPU: we are adding support for multiple GPUs which enables speed-up linear in the number of GPUs.
 ---
 
