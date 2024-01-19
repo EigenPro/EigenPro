@@ -80,9 +80,14 @@ class EigenPro:
         self._model = model.shallow_copy()
         self._threshold_index = threshold_index
 
-        self._precon = precon
-        self._model.add_centers(precon.centers, precon.weights)
-        self.grad_accumulation = 0
+        if accumulated_gradients:
+            self.grad_accumulation = 0
+            if kz_xs_evecs == None:
+                raise NotImplementedError
+            else:
+                self.k_centers_nystroms_mult_eigenvecs = kz_xs_evecs
+        else:
+            self.grad_accumulation = None
 
 
         model.forward(self._precon.centers)

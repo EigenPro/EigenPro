@@ -95,7 +95,7 @@ class PreallocatedKernelMachine(KernelMachine):
     x = x.to(self.device)
 
     if projection:
-      centers = self._centers[:self.original_size,:]
+      centers = self._centers[:self.original_size, :]
       weights = self._weights[:self.original_size, :]
     else:
       centers = self._centers[:self.used_capacity, :]
