@@ -11,9 +11,9 @@ class EigenPro:
     Args:
         model (KernelMachine): A KernelMachine instance.
         threshold_index (int): An index used for thresholding.
-        precon_data (Preconditioner): Preconditioner instance that contains a
+        data_preconditioner (Preconditioner): Preconditioner instance that contains a
             top kernel eigensystem for correcting the gradient for data.
-        precon_model (Preconditioner): Preconditioner instance that contains a
+        model_preconditioner (Preconditioner): Preconditioner instance that contains a
             top kernel eigensystem for correcting the gradient for the projection
 
     Attributes:
@@ -25,8 +25,8 @@ class EigenPro:
     def __init__(self,
                  model: KernelMachine,
                  threshold_index: int,
-                 precon_data: Preconditioner,
-                 precon_model: Preconditioner,
+                 data_preconditioner: Preconditioner,
+                 model_preconditioner: Preconditioner,
                  kz_xs_evecs:torch.tensor = None,
                  type=torch.float32,
                  accumulated_gradients:bool = False,) -> None:
@@ -35,8 +35,8 @@ class EigenPro:
         self.type = type
         self._model = model
         self._threshold_index = threshold_index
-        self.precon_data  = precon_data
-        self.precon_model = precon_model
+        self.data_preconditioner  = data_preconditioner
+        self.model_preconditioner = model_preconditioner
 
         if accumulated_gradients:
             self.grad_accumulation = 0
@@ -48,7 +48,7 @@ class EigenPro:
             self.grad_accumulation = None
 
         #### adding nystrom samples to the model
-        self._model.add_centers(precon_data.centers.to(type), None,nystrom_centers = True)
+        self._model.add_centers(data_preconditioner.centers.to(type), None,nystrom_centers = True)
 
 
 
@@ -82,11 +82,11 @@ class EigenPro:
 
 
         if projection:
-            lr = self.precon_model.scaled_learning_rate(batch_size)
-            deltap, delta = self.precon_model.delta(batch_x.to(grad.device).to(self.type), grad)
+            lr = self.model_preconditioner.scaled_learning_rate(batch_size)
+            deltap, delta = self.model_preconditioner.delta(batch_x.to(grad.device).to(self.type), grad)
         else:
-            lr = self.precon_data.scaled_learning_rate(batch_size)
-            deltap, delta = self.precon_data.delta(batch_x.to(grad.device).to(self.type), grad)
+            lr = self.data_preconditioner.scaled_learning_rate(batch_size)
+            deltap, delta = self.data_preconditioner.delta(batch_x.to(grad.device).to(self.type), grad)
 
         if self.grad_accumulation is None or projection:
             self.model.update_by_index(batch_ids, -lr *grad,projection=projection )
@@ -111,7 +111,7 @@ class EigenPro:
 
 
 
-        self.model.update_by_index(torch.tensor(list(range(self.precon_model._centers.shape[0])))
+        self.model.update_by_index(torch.tensor(list(range(self.model_preconditioner._centers.shape[0])))
                                    ,lr*delta, nystrom_update=True,projection=projection)
 
         del grad, batch_x, batch_p, deltap, delta
