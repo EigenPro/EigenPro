@@ -1,3 +1,4 @@
+"""Command line arguments."""
 import argparse
 
 def parse_cmd_args():
