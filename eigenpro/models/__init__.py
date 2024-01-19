@@ -4,7 +4,7 @@ from typing import Callable, List, Optional
 import torch
 from ..utils.device import Device
 from .sharded_kernel_machine import ShardedKernelMachine
-from .preallocated_kernel_machine import PreallocatedKernelMachine_optimized
+from .preallocated_kernel_machine import PreallocatedKernelMachine
 
 
 def create_kernel_model(centers, n_outputs, kernel_fn,device, dtype=torch.float32, tmp_centers_coeff=2):
@@ -14,7 +14,7 @@ def create_kernel_model(centers, n_outputs, kernel_fn,device, dtype=torch.float3
     kms = []
     for i, centers_i in enumerate(list_of_centers):
         kms.append(
-            PreallocatedKernelMachine_optimized(
+            PreallocatedKernelMachine(
                 kernel_fn, 
                 n_outputs, 
                 centers_i, 
