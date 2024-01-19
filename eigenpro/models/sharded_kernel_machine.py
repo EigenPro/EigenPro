@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 class ShardedKernelMachine(KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
 
-  def __init__(self, kms: List[PreallocatedKernelMachine_optimized], device: 'Device' ):
+  def __init__(self, kms: List[PreallocatedKernelMachine], device: 'Device' ):
     self.device = device
     self.shard_kms = kms
     self.n_devices = len(kms)
