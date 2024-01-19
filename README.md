@@ -92,7 +92,7 @@ device = Device.create(use_gpu_if_available=True)
 model = create_kernel_model(Z, c, kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
 
 sd, sm, qd, qm = 10, 10, 3, 3 # configuration for EigenPro preconditioners
-model2 = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,
+model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,
                      s_data=sd, s_model=sm, q_data=qd, q_model=qm, epochs=2, accumulated_gradients=True)
 print("Laplacian test complete!")
 ```
