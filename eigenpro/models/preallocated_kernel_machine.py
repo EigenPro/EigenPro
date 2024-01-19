@@ -4,7 +4,7 @@ from typing import Callable, List, Optional
 from ..utils.cache import LRUCache
 
 
-class PreallocatedKernelMachine_optimized(KernelMachine):
+class PreallocatedKernelMachine(KernelMachine):
   """Kernel machine class for handling kernel methods.
 
   Attributes:
