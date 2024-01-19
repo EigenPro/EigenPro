@@ -3,8 +3,8 @@
 from typing import Callable, List, Optional
 import torch
 from ..utils.device import Device
-from .sharded import ShardedKernelMachine
-from .preallocated import PreallocatedKernelMachine_optimized
+from .sharded_kernel_machine import ShardedKernelMachine
+from .preallocated_kernel_machine import PreallocatedKernelMachine_optimized
 
 
 def create_kernel_model(centers, n_outputs, kernel_fn,device, dtype=torch.float32, tmp_centers_coeff=2):
