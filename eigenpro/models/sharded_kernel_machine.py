@@ -1,7 +1,7 @@
 import torch, numpy as np
 from .base import KernelMachine
 from typing import Callable, List, Optional
-from .preallocated_kernel_machine import PreallocatedKernelMachine_optimized
+from .preallocated_kernel_machine import PreallocatedKernelMachine
 from ..utils.cache import LRUCache
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
