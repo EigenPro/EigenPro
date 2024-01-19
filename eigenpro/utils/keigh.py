@@ -1,5 +1,5 @@
 """`eigh` for kernel matrices"""
-from .svd import EigenSystem, top_q_eig
+from .eigh import EigenSystem, top_q_eig
 import numpy as np, torch
 from typing import Callable
 
