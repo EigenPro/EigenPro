@@ -10,7 +10,7 @@ from .utils.mapreduce import MapReduceEngine
 from .models import create_kernel_model
 from termcolor import colored
 from tabulate import tabulate
-from tqdm import tqdm
+from tqdm import tqdm 
 from .utils.metrics import get_performance
 
 
@@ -71,17 +71,11 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
 
 
-
-
-
     # data loader
     dataset = ArrayDataset(X, Y)
-
-    batch_size = data_preconditioner.critical_batch_size
-    train_dataloader = DataLoader(dataset, batch_size=batch_size , shuffle=True)
-
-    # model initilization
-    # model = create_kernel_model(Z, d_out, kernel_fn, device, dtype=dtype, tmp_centers_coeff=tmp_centers_coeff)
+    data_batch_size = min(10_000, data_preconditioner.critical_batch_size)
+    model_batch_size = min(10_000, model_preconditioner.critical_batch_size)
+    train_dataloader = DataLoader(dataset, batch_size=data_batch_size , shuffle=True)
 
     # optimizer
     optimizer = EigenPro(model, p, data_preconditioner,model_preconditioner,kz_xs_evecs,dtype,
@@ -100,8 +94,10 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         [colored("size of model preconditioner", 'green'), s_model],
         [colored("level of model preconditioner", 'green'), q_model],
         [colored("size of training dataset", 'green'), X.shape[0]],
-        [colored("critical batch size",'green'), data_preconditioner.critical_batch_size],
-        [colored("batch size",'green'), " "],
+        [colored("critical batch size (SGD)",'green'), data_preconditioner.critical_batch_size],
+        [colored("batch size (SGD)",'green'), data_batch_size],
+        [colored("critical batch size (projection)",'green'), model_preconditioner.critical_batch_size],
+        [colored("batch size (projection)", 'green'), model_batch_size],
         [colored("scaled learning rate",'green'),
          f"{data_preconditioner.scaled_learning_rate(data_preconditioner.critical_batch_size):.2f}"],
         [colored("projection interval (in batches)",'green'), T]
@@ -114,7 +110,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
     if wandb is not None:
         wandb.config.update({f'Project Frequency':f'{T}',
-                           f'batch_size':f'{batch_size}',
+                           f'batch_size':f'{data_batch_size}',
                            f'number of training samples': f'{n}',
                            f'number of centers': f'{p}',
                            f's_data':f'{s_data}',
@@ -128,20 +124,20 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         epoch_progress = tqdm(enumerate(train_dataloader), total=len(train_dataloader),
                               desc=f"Epoch {epoch + 1}/{epochs}")
 
-        for t,(x_batch,y_batch,id_batch) in epoch_progress:
+        for t, (x_batch,y_batch,id_batch) in epoch_progress:
 
             optimizer.step(x_batch, y_batch, id_batch)
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
                 torch.cuda.empty_cache()
 
-
             if ( (project_counter + 1) % T == 0 or (t==len(train_dataloader)-1) ) and accumulated_gradients:
                 projection_dataset = ArrayDataset(model.centers[0], optimizer.grad_accumulation)
                 projection_loader = DataLoader(projection_dataset,
-                                               batch_size=model_preconditioner.critical_batch_size, shuffle=True)
+                                               batch_size=model_batch_size, shuffle=True)
                 for _ in range(1):
-                    for z_batch, grad_batch, id_batch in projection_loader:
+                    for z_batch, grad_batch, id_batch in tqdm(
+                            projection_loader, total=len(projection_loader), leave=True):
                         optimizer.step(z_batch, grad_batch, id_batch, projection=True)
 
                 update_projection = torch.cat([k.weights_project.to(device_base) for k in model.shard_kms])

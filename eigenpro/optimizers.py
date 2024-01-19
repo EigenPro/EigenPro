@@ -40,7 +40,7 @@ class EigenPro:
 
         if accumulated_gradients:
             self.grad_accumulation = 0
-            if kz_xs_evecs ==None:
+            if kz_xs_evecs == None:
                 raise NotImplementedError
             else:
                 self.k_centers_nystroms_mult_eigenvecs = kz_xs_evecs
