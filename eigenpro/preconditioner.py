@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from .utils.cache import LRUCache
 from .utils.keigh import top_eigensystem
+from .utils.fmm import KmV
 
 class Preconditioner:
     """Class for preconditioning based on a given kernel function and centers.
@@ -96,7 +97,11 @@ class Preconditioner:
         """
         eigenvectors = self._eigensys.vectors
         normalized_ratios = self._eigensys.normalized_ratios
-        return self._kernel_fn(batch,self.centers)@ (normalized_ratios*eigenvectors)
+        #return self._kernel_fn(batch,self.centers)@ (normalized_ratios*eigenvectors)
+        return KmV(
+            self._kernel_fn, batch, self.centers, 
+            (normalized_ratios*eigenvectors),
+            row_chunk_size = 2**16)
 
     def change_type(self, dtype=torch.float32):
         """Converting to half precision
