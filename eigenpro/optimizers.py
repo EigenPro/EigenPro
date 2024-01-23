@@ -28,11 +28,11 @@ class EigenPro:
                  data_preconditioner: Preconditioner,
                  model_preconditioner: Preconditioner,
                  kz_xs_evecs:torch.tensor = None,
-                 type=torch.float32,
+                 dtype=torch.float32,
                  accumulated_gradients:bool = False,) -> None:
         """Initialize the EigenPro optimizer."""
 
-        self.type = type
+        self.dtype = dtype
         self._model = model
         self._threshold_index = threshold_index
         self.data_preconditioner  = data_preconditioner
@@ -48,7 +48,7 @@ class EigenPro:
             self.grad_accumulation = None
 
         #### adding nystrom samples to the model
-        self._model.add_centers(data_preconditioner.centers.to(type), None,nystrom_centers = True)
+        self._model.add_centers(data_preconditioner.centers.to(dtype), None,nystrom_centers = True)
 
 
 
@@ -77,16 +77,16 @@ class EigenPro:
         """
 
         batch_p = self.model.forward(batch_x,projection=projection)
-        grad = batch_p - batch_y.to(self.type).to(batch_p.device) ## gradient in function space K(bathc,.) (f-y)
+        grad = batch_p - batch_y.to(self.dtype).to(batch_p.device) ## gradient in function space K(bathc,.) (f-y)
         batch_size = batch_x.shape[0]
 
 
         if projection:
             lr = self.model_preconditioner.scaled_learning_rate(batch_size)
-            deltap, delta = self.model_preconditioner.delta(batch_x.to(grad.device).to(self.type), grad)
+            deltap, delta = self.model_preconditioner.delta(batch_x.to(grad.device).to(self.dtype), grad)
         else:
             lr = self.data_preconditioner.scaled_learning_rate(batch_size)
-            deltap, delta = self.data_preconditioner.delta(batch_x.to(grad.device).to(self.type), grad)
+            deltap, delta = self.data_preconditioner.delta(batch_x.to(grad.device).to(self.dtype), grad.to(self.dtype))
 
         if self.grad_accumulation is None or projection:
             self.model.update_by_index(batch_ids, -lr*grad, projection=projection)
@@ -95,7 +95,7 @@ class EigenPro:
             self.model.lru.cache.clear()
             kgrads = []
             for k in k_centers_batch_all:
-                kgrads.append((k @ grad.to(k.device)))
+                kgrads.append(k @ grad.to(k.device).to(k.dtype))
             k_centers_batch_grad = torch.cat(kgrads)  ##  K(bathc,Z) (f-y)
 
             self.grad_accumulation = self.grad_accumulation - lr*\

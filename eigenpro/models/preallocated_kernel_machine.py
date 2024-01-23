@@ -109,12 +109,12 @@ class PreallocatedKernelMachine(KernelMachine):
       predictions = kernel_mat @ self.weights_project
     else:
       poriginal = kernel_mat[:, :self.original_size] @ weights[:self.original_size, :]
-      if kernel_mat.shape[1] > self.original_size:
+      if centers.shape[0] > self.original_size:
         #prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
         prest = KmV(
             self._kernel_fn, x, 
-            self.centers[self.original_size:],
-            self.weights[self.original_size:],
+            centers[self.original_size:],
+            weights[self.original_size:],
             row_chunk_size=2**16
         )
       else:
