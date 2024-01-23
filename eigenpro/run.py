@@ -137,7 +137,11 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
                                                batch_size=model_batch_size, shuffle=True)
                 for _ in range(1):
                     for z_batch, grad_batch, id_batch in tqdm(
-                            projection_loader, total=len(projection_loader), leave=True):
+                            projection_loader, 
+                            total=len(projection_loader), 
+                            leave=False,
+                            desc="Projection"
+                        ):
                         optimizer.step(z_batch, grad_batch, id_batch, projection=True)
 
                 update_projection = torch.cat([k.weights_project.to(device_base) for k in model.shard_kms])
