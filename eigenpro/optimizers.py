@@ -164,7 +164,11 @@ class EigenPro:
             self.model.lru.cache.clear()
             kgrads = []
             for k in k_centers_batch_all:
-                kgrads.append(k @ grad.to(k.device).to(k.dtype))
+#<<<<<<< HEAD
+#                kgrads.append(k @ grad.to(k.device).to(k.dtype))
+#=======
+                kgrads.append((k @ grad.to(k.device).to(k.dtype)).to(base_device))
+#>>>>>>> multi_gpu
             k_centers_batch_grad = torch.cat(kgrads)  ##  K(bathc,Z) (f-y)
 
             self.grad_accumulation = self.grad_accumulation - lr*\
