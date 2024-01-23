@@ -4,6 +4,7 @@ from typing import Callable, List, Optional
 from ..utils.cache import LRUCache
 from ..utils.fmm import KmV
 
+import ipdb
 
 class PreallocatedKernelMachine(KernelMachine):
   """Kernel machine class for handling kernel methods.
@@ -73,12 +74,12 @@ class PreallocatedKernelMachine(KernelMachine):
   @property
   def centers(self) -> int:
     """Return the centers."""
-    return self._centers[:self.size]
+    return self._centers[:self.original_size]
 
   @property
   def weights(self) -> int:
     """Return the weights."""
-    return self._weights[:self.size]
+    return self._weights[:self.original_size]
 
   def forward(self, x: torch.Tensor, projection:bool = False, train=True) -> torch.Tensor:
     """Forward pass for the kernel machine.
@@ -166,6 +167,7 @@ class PreallocatedKernelMachine(KernelMachine):
     if nystrom_centers:
       self.nystrom_size = centers.shape[0]
 
+
     del centers, weights
     torch.cuda.empty_cache()
 
@@ -194,7 +196,7 @@ class PreallocatedKernelMachine(KernelMachine):
       delta: Tensor of weight update of shape [n_indices, n_outputs].
     """
     if projection:
-      self.weights_project[indices] +=delta
+      self.weights_project[indices] +=delta.to(self.device)
     else:
       self._weights[indices] += delta
 

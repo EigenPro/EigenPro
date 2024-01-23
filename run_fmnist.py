@@ -11,9 +11,21 @@ from eigenpro.utils.cmd import parse_cmd_args
 from eigenpro.data.utils import load_fmnist
 from eigenpro.models import create_kernel_model
 
+import time
+
 args = parse_cmd_args()
 
-X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
+# X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
+from eigenpro.datasets import cifar5m
+dataset = cifar5m()
+X_all = dataset.X_train
+#train_indices = np.random.choice(X_all.shape[0],args.n_train,replace = False)
+X_train= X_all#[train_indices]
+Y_train = one_hot(dataset.y_train.long())
+
+X_test = dataset.X_test#dataset.X_test[0:1_000]#torch.load(address+"X_test_10K")/255.0
+Y_test = one_hot(dataset.y_test.long())
+
 
 # Eigenpro configuration
 dtype = torch.float16
@@ -22,7 +34,7 @@ kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
 # PyTorch does not support half-precision multiplication on CPU
 device = Device.create(use_gpu_if_available=True)
 
-
+start = time.time()
 # Eigenpro
 # Note: if you want to use the whole X as your centers switch to EigenPro2.0 which is a faster method
 if args.model_size == -1:
@@ -31,7 +43,7 @@ if args.model_size == -1:
 else:
     # In case you want to use a subset of data as model centers, define Z as tensor of your centers
     accumulated_gradients = True
-    centers_set_indices = np.random.choice(args.n_train, args.model_size, replace=False)
+    centers_set_indices = np.random.choice(X_train.shape[0], args.model_size, replace=False)
     Z = X_train[centers_set_indices,:]
 
 model = create_kernel_model(Z, Y_train.shape[-1], kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
@@ -42,8 +54,9 @@ model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtyp
                      wandb=None, epochs=args.epochs,accumulated_gradients=accumulated_gradients)
 
 
+end = time.time()
 
-
+print(f'total time:{end-start}')
 
 
 

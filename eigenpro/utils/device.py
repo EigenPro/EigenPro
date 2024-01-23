@@ -48,5 +48,5 @@ class Device():
         else:
             device_list = [torch.device('cpu')]
         print(colored(f'notice: the current implementation can only support 1 GPU, we only use the following device:'
-                      f' ({device_list[0]}) ','red'))
-        return Device(device_list[0:1])
+                      f' ({device_list}) ','red'))
+        return Device(device_list)

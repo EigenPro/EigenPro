@@ -7,6 +7,7 @@ import torch
 from .utils.cache import LRUCache
 from .utils.keigh import top_eigensystem
 from .utils.fmm import KmV
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class Preconditioner:
     """Class for preconditioning based on a given kernel function and centers.
@@ -85,7 +86,7 @@ class Preconditioner:
 
         return vtkg,vdvtkg
 
-    def eval_vec(self,batch):
+    def eval_vec(self,batches,return_device = 'cpu'):
         """Computes K(X_s,batch)@(D*E) which is a part of correction term
         Args:
             batch (torch.Tensor): Of shape `[, n_features]`.
@@ -97,11 +98,18 @@ class Preconditioner:
         """
         eigenvectors = self._eigensys.vectors
         normalized_ratios = self._eigensys.normalized_ratios
-        #return self._kernel_fn(batch,self.centers)@ (normalized_ratios*eigenvectors)
-        return KmV(
-            self._kernel_fn, batch, self.centers, 
-            (normalized_ratios*eigenvectors),
-            row_chunk_size = 2**16)
+        # return self._kernel_fn(batch,self.centers)@ (normalized_ratios*eigenvectors)
+        # return KmV(
+        #     self._kernel_fn, batch, self.centers,
+        #     (normalized_ratios*eigenvectors),
+        #     row_chunk_size = 2**16)
+        DEq = (normalized_ratios * eigenvectors)
+        with ThreadPoolExecutor() as executor:
+            outs = [executor.submit(KmV,self._kernel_fn, batch,self.centers.to(batch.device),
+                                    DEq.to(batch.device),row_chunk_size = 2**16) for batch in batches]
+        return torch.cat([o.result().to(return_device) for o in outs])
+
+
 
     def change_type(self, dtype=torch.float32):
         """Converting to half precision
