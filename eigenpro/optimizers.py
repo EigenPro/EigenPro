@@ -115,7 +115,7 @@ class EigenPro:
 #<<<<<<< HEAD
 #                kgrads.append(k @ grad.to(k.device).to(k.dtype))
 #=======
-                kgrads.append((k @ grad.to(k.device)).to(base_device))
+                kgrads.append((k @ grad.to(k.device).to(k.dtype)).to(base_device))
 #>>>>>>> multi_gpu
             k_centers_batch_grad = torch.cat(kgrads)  ##  K(bathc,Z) (f-y)
 
