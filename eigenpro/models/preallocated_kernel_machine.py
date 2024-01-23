@@ -115,7 +115,7 @@ class PreallocatedKernelMachine(KernelMachine):
             self._kernel_fn, x, 
             centers[self.original_size:],
             weights[self.original_size:],
-            row_chunk_size=2**16
+            col_chunk_size=2**16
         )
       else:
         prest = 0
