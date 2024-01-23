@@ -16,7 +16,7 @@ args = parse_cmd_args()
 X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
 
 # Eigenpro configuration
-dtype = torch.float32
+dtype = torch.float16
 kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
 # Note: if you want to run on CPU, change `dtype` to `torch.float32` since
 # PyTorch does not support half-precision multiplication on CPU
