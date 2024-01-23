@@ -2,6 +2,7 @@ import torch
 from .base import KernelMachine
 from typing import Callable, List, Optional
 from ..utils.cache import LRUCache
+from ..utils.fmm import KmV
 
 
 class PreallocatedKernelMachine(KernelMachine):
@@ -101,14 +102,21 @@ class PreallocatedKernelMachine(KernelMachine):
       centers = self._centers[:self.used_capacity, :]
       weights = self._weights[:self.used_capacity, :]
 
-    kernel_mat = self._kernel_fn(x, centers)
+    #kernel_mat = self._kernel_fn(x, centers)
+    kernel_mat = self._kernel_fn(x, centers[:self.original_size])
 
     if projection:
-      predictions = kernel_mat@self.weights_project
+      predictions = kernel_mat @ self.weights_project
     else:
       poriginal = kernel_mat[:, :self.original_size] @ weights[:self.original_size, :]
       if kernel_mat.shape[1] > self.original_size:
-        prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
+        #prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
+        prest = KmV(
+            self._kernel_fn, x, 
+            self.centers[self.original_size:],
+            self.weights[self.original_size:],
+            row_chunk_size=2**16
+        )
       else:
         prest = 0
       predictions = poriginal + prest
@@ -163,7 +171,7 @@ class PreallocatedKernelMachine(KernelMachine):
 
 
   def reset(self):
-    """reset the model to before adding temporary centers were added adn before projection
+    """reset the model to before temporary centers were added.
 
     Args:
         No arguments.

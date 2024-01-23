@@ -89,7 +89,7 @@ class EigenPro:
             deltap, delta = self.data_preconditioner.delta(batch_x.to(grad.device).to(self.type), grad)
 
         if self.grad_accumulation is None or projection:
-            self.model.update_by_index(batch_ids, -lr *grad,projection=projection )
+            self.model.update_by_index(batch_ids, -lr*grad, projection=projection)
         else:
             k_centers_batch_all = self.model.lru.get('k_centers_batch')
             self.model.lru.cache.clear()
