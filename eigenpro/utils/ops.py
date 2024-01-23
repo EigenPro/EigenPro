@@ -1,6 +1,22 @@
 from typing import List, Callable
 from concurrent.futures import ThreadPoolExecutor
 import torch
+import ipdb
+
+def choose_from_list(my_list, subset_size):
+
+    chosen = []
+    l = len(my_list)
+    choose_per = subset_size//l
+    residual = subset_size - choose_per*(l-1)
+    for indl,ll in enumerate(my_list):
+        if indl<l-1:
+            chosen.append(ll[0:choose_per,:])
+        else:
+            chosen.append(ll[0:residual,:])
+
+    return chosen
+
 
 
 class ParallelMatrixOperator:
