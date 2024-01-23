@@ -15,17 +15,7 @@ import time
 
 args = parse_cmd_args()
 
-# X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
-from eigenpro.datasets import cifar5m
-dataset = cifar5m()
-X_all = dataset.X_train
-#train_indices = np.random.choice(X_all.shape[0],args.n_train,replace = False)
-X_train= X_all#[train_indices]
-Y_train = one_hot(dataset.y_train.long())
-
-X_test = dataset.X_test#dataset.X_test[0:1_000]#torch.load(address+"X_test_10K")/255.0
-Y_test = one_hot(dataset.y_test.long())
-
+X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
 
 # Eigenpro configuration
 dtype = torch.float16
@@ -57,47 +47,3 @@ model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtyp
 end = time.time()
 
 print(f'total time:{end-start}')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

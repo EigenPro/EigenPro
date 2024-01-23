@@ -83,7 +83,7 @@ class EigenPro:
 #        grad = batch_p - batch_y.to(self.dtype).to(batch_p.device) ## gradient in function space K(bathc,.) (f-y)
 #=======
         base_device = batch_p.device
-        grad = batch_p - batch_y.to(self.type).to(base_device) ## gradient in function space K(bathc,.) (f-y)
+        grad = batch_p - batch_y.to(self.dtype).to(base_device) ## gradient in function space K(bathc,.) (f-y)
 #>>>>>>> multi_gpu
         batch_size = batch_x.shape[0]
 
