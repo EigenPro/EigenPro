@@ -3,7 +3,6 @@ import torch
 from .models.base import KernelMachine
 from .preconditioner import Preconditioner
 
-import ipdb
 
 class EigenPro:
     """EigenPro optimizer for kernel machines.
@@ -79,12 +78,8 @@ class EigenPro:
 
 
         batch_p = self.model.forward(batch_x,projection=projection)
-#<<<<<<< HEAD
-#        grad = batch_p - batch_y.to(self.dtype).to(batch_p.device) ## gradient in function space K(bathc,.) (f-y)
-#=======
         base_device = batch_p.device
         grad = batch_p - batch_y.to(self.dtype).to(base_device) ## gradient in function space K(bathc,.) (f-y)
-#>>>>>>> multi_gpu
         batch_size = batch_x.shape[0]
 
 
@@ -95,28 +90,18 @@ class EigenPro:
             lr = self.data_preconditioner.scaled_learning_rate(batch_size)
             deltap, delta = self.data_preconditioner.delta(batch_x.to(grad.device).to(self.dtype), grad.to(self.dtype))
 
-#<<<<<<< HEAD
-#        if self.grad_accumulation is None or projection:
-#            self.model.update_by_index(batch_ids, -lr*grad, projection=projection)
-#=======
-
         if self.grad_accumulation is None:# or projection:
             self.model.update_by_index(batch_ids, -lr *grad)#,projection=projection )
 
         elif projection:
             self.model.update_projection(batch_ids, -lr *grad, gpu_index=gpu_ind)
 
-#>>>>>>> multi_gpu
         else:
             k_centers_batch_all = self.model.lru.get('k_centers_batch')
             self.model.lru.cache.clear()
             kgrads = []
             for k in k_centers_batch_all:
-#<<<<<<< HEAD
-#                kgrads.append(k @ grad.to(k.device).to(k.dtype))
-#=======
                 kgrads.append((k @ grad.to(k.device).to(k.dtype)).to(base_device))
-#>>>>>>> multi_gpu
             k_centers_batch_grad = torch.cat(kgrads)  ##  K(bathc,Z) (f-y)
 
             self.grad_accumulation = self.grad_accumulation - lr*\
