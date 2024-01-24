@@ -5,7 +5,6 @@ from .preallocated_kernel_machine import PreallocatedKernelMachine
 from ..utils.cache import LRUCache
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import ipdb
 
 class ShardedKernelMachine(KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
@@ -93,7 +92,6 @@ class ShardedKernelMachine(KernelMachine):
       outputs = [executor.submit(self.shard_kms[i].add_centers, centers_gpus_list[i]
                            , weights_gpus_list[i],nystrom_centers=nystrom_centers) for i in range(self.n_devices)]
 
-
     for outputs in as_completed(outputs):
       try:
         # Retrieve the result of the future
@@ -127,17 +125,10 @@ class ShardedKernelMachine(KernelMachine):
     threshold_before = 0
 
     for i in range(self.n_devices):
-      if (nystrom_update and projection):
-
-        number_nystroms_in_gpui = self.shard_kms[i].nystrom_size
-        indices_in_gpui = torch.tensor( list(range(number_nystroms_in_gpui)
-                                             )
-                                        )
-        indices_list.append(indices_in_gpui)
-        delta_list.append(delta[threshold_now:threshold_now+number_nystroms_in_gpui].to(self.shard_kms[i].device))
-        threshold_now += number_nystroms_in_gpui
-
-
+      if projection:
+        #### only on one gpu, does not work with multi-gpu
+        indices_list.append(indices)
+        delta_list.append(delta)
       elif nystrom_update:
         number_nystroms_in_gpui = self.shard_kms[i].nystrom_size
         indices_in_gpui = torch.tensor( list(range(self.shard_kms[i].original_size,
@@ -145,32 +136,21 @@ class ShardedKernelMachine(KernelMachine):
                                              )
                                         )
         indices_list.append(indices_in_gpui)
-        delta_list.append(delta[threshold_now:threshold_now+number_nystroms_in_gpui].to(self.shard_kms[i].device))
-        threshold_now += number_nystroms_in_gpui
+        delta_list.append(delta[threshold_now:threshold_now+number_nystroms_in_gpui])
+        # threshold_now += number_nystroms_in_gpui
       else:
-        device_tmp = self.shard_kms[i].device
         threshold_now = threshold_now + self.shard_kms[i].original_size #+ self.shard_kms[i].nystrom_size
         gp1_indices = np.where((indices<threshold_now) & (indices>=threshold_before))[0]
         indices_in_gpui = indices[gp1_indices] - threshold_before
         indices_list.append(indices_in_gpui)
-        delta_list.append(delta[gp1_indices].to(device_tmp))
+        delta_list.append(delta[gp1_indices])
         threshold_before = threshold_now
 
 
-
     with ThreadPoolExecutor() as executor:
-      outputs = [executor.submit(self.shard_kms[i].update_by_index, indices_list[i],
+      _ = [executor.submit(self.shard_kms[i].update_by_index, indices_list[i],
                            delta_list[i],projection=projection) for i in range(self.n_devices)]
 
-    for outputs in as_completed(outputs):
-      try:
-        # Retrieve the result of the future
-        _ = outputs.result()
-        # Process the result if necessary
-      except Exception as exc:
-        # Handle exceptions from within the thread
-        print(f"A thread caused an error: {exc}")
-        raise  # Reraising the exception will stop the program
 
   def reset(self):
     """reset the model to before adding temporary centers were added adn before projection
@@ -182,14 +162,6 @@ class ShardedKernelMachine(KernelMachine):
     with ThreadPoolExecutor() as executor:
       [executor.submit(self.shard_kms[i].reset())
                          for i in range(self.n_devices)]
-
-
-  def update_projection(self,batch_ids,
-                      delta: torch.Tensor,
-                      gpu_index=0) -> None:
-
-      device = self.shard_kms[gpu_index].device
-      self.shard_kms[gpu_index].update_by_index(batch_ids, delta.to(device), projection=True)
 
 
 

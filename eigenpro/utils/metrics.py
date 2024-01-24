@@ -7,7 +7,7 @@ def get_performance(model, X, Y, batch_size=1024):
 
     # Convert X and Y to PyTorch datasets and use DataLoader for batch processing
     dataset = torch.utils.data.TensorDataset(X, Y)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=16)
 
     total_loss = 0
     total_accuracy = 0
@@ -31,9 +31,8 @@ def get_performance(model, X, Y, batch_size=1024):
             total_accuracy += accuracy
             total_samples += batch_Y.size(0)
             
-            del batch_X, batch_Y, loss
+            del batch_X, batch_Y
 
-    del dataloader, dataset
     # Calculate average loss and accuracy
     avg_loss = total_loss / total_samples
     avg_accuracy = total_accuracy / total_samples
