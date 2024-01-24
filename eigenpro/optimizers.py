@@ -121,7 +121,8 @@ class EigenPro:
     def step(self,
              batch_x: torch.Tensor,
              batch_y: torch.Tensor,
-             batch_ids: torch.Tensor) -> None:
+             batch_ids: torch.Tensor,
+             projection:bool=False) -> None:
         """Performs a single optimization step.
 
         Args:
@@ -129,20 +130,9 @@ class EigenPro:
             batch_y (torch.Tensor): Batch of target values.
             batch_ids (torch.Tensor): Batch of sample indices.
         """
-        in_ids, out_ids = split_ids(batch_ids, self._threshold_index)
-        batch_p = self.model(batch_x)
-        k_centers_batch_grad = self.model.lru.get('k_centers_batch_grad')
-        grad = batch_p - batch_y
-        in_batch_g = obtain_by_ids(in_ids, grad)
-        out_batch_g = obtain_by_ids(out_ids, grad)
 
         batch_p = self.model.forward(batch_x,projection=projection)
-#<<<<<<< HEAD
-#        grad = batch_p - batch_y.to(self.dtype).to(batch_p.device) ## gradient in function space K(bathc,.) (f-y)
-#=======
-        base_device = batch_p.device
-        grad = batch_p - batch_y.to(self.dtype).to(base_device) ## gradient in function space K(bathc,.) (f-y)
-#>>>>>>> multi_gpu
+        grad = batch_p - batch_y.to(self.dtype).to(batch_p.device) ## gradient in function space K(bathc,.) (f-y)
         batch_size = batch_x.shape[0]
 
         out_batch_size = len(out_batch_g)
@@ -164,11 +154,7 @@ class EigenPro:
             self.model.lru.cache.clear()
             kgrads = []
             for k in k_centers_batch_all:
-#<<<<<<< HEAD
-#                kgrads.append(k @ grad.to(k.device).to(k.dtype))
-#=======
-                kgrads.append((k @ grad.to(k.device).to(k.dtype)).to(base_device))
-#>>>>>>> multi_gpu
+                kgrads.append(k @ grad.to(k.device).to(k.dtype))
             k_centers_batch_grad = torch.cat(kgrads)  ##  K(bathc,Z) (f-y)
 
             self.grad_accumulation = self.grad_accumulation - lr*\
@@ -184,7 +170,7 @@ class EigenPro:
 
 
 
-        self.model.update_by_index(torch.tensor(list(range(self.precon_model._centers.shape[0])))
+        self.model.update_by_index(torch.tensor(list(range(self.model_preconditioner._centers.shape[0])))
                                    ,lr*delta, nystrom_update=True,projection=projection)
 
         del grad, batch_x, batch_p, deltap, delta

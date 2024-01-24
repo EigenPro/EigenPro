@@ -42,6 +42,49 @@ model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtyp
                      wandb=None, epochs=args.epochs,accumulated_gradients=accumulated_gradients)
 
 
-end = time.time()
 
-print(f'total time:{end-start}')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
