@@ -6,7 +6,7 @@ It is currently based on a PyTorch backend.
 ## Features
 - *Blazing fast*: ~20 minutes on a single A100 GPU to train a model with > 1 Million centers for 1 epoch over 5 Million samples
 - *Scalable*: easily scales to models with > 1 Million centers with just 1 GPU.
-- (coming soon!) multi GPU: we are adding support for multiple GPUs which enables speed-up linear in the number of GPUs.
+- *multi GPU*: enables larger models, and major speed-ups for similar model sizes.
 ---
 
 # Performance highlights
