@@ -47,6 +47,7 @@ class Device():
                            for i in range(torch.cuda.device_count())]
         else:
             device_list = [torch.device('cpu')]
-        print(colored(f'notice: the current implementation can only support 1 GPU, we only use the following device:'
+        print(colored(f'Note: the current implementation will use all available GPUs.\n'
+                      f'We will use the following device for this run:'
                       f' ({device_list}) ','red'))
         return Device(device_list)
