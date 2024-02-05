@@ -67,7 +67,7 @@ We utilized the raw features from the CIFAR5M dataset. In our benchmarks, we pro
 ## Installation
 
 ```
-pip install git+ssh://git@github.com/EigenPro/EigenPro.git@extracted_model
+pip install git+ssh://git@github.com/EigenPro/EigenPro.git@main
 ```
 
 ## Test your installation
