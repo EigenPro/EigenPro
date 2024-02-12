@@ -102,7 +102,6 @@ class PreallocatedKernelMachine(KernelMachine):
       centers = self._centers[:self.used_capacity, :]
       weights = self._weights[:self.used_capacity, :]
 
-    #kernel_mat = self._kernel_fn(x, centers)
     kernel_mat = self._kernel_fn(x, centers[:self.original_size])
 
     if projection:
@@ -110,7 +109,6 @@ class PreallocatedKernelMachine(KernelMachine):
     else:
       poriginal = kernel_mat[:, :self.original_size] @ weights[:self.original_size, :]
       if centers.shape[0] > self.original_size:
-        #prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
         prest = KmV(
             self._kernel_fn, x, 
             centers[self.original_size:],
@@ -151,7 +149,6 @@ class PreallocatedKernelMachine(KernelMachine):
       weights = torch.zeros((centers.shape[0], self.n_outputs),
                             device=self.device)
 
-    # print(f'capacity used:{self.used_capacity}, newcenters size:{centers.shape[0]}')
     if self.used_capacity + centers.shape[0] > self.tmp_centers_coeff * self.original_size:
       print("error")
       raise ValueError(f"Out of capacity for new centers: "

@@ -4,7 +4,6 @@ def get_performance(model, X, Y, batch_size=1024):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Ensure model is in evaluation mode
-
     # Convert X and Y to PyTorch datasets and use DataLoader for batch processing
     dataset = torch.utils.data.TensorDataset(X, Y)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=16)
@@ -25,7 +24,6 @@ def get_performance(model, X, Y, batch_size=1024):
             loss = torch.norm(Y_hat - batch_Y)**2 / batch_Y.size(0)
             accuracy = torch.sum(torch.argmax(Y_hat, dim=1) == torch.argmax(batch_Y, dim=1)).item()
 
-            
             # Accumulate loss and accuracy
             total_loss += loss.item() * batch_Y.size(0)
             total_accuracy += accuracy

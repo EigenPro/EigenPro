@@ -126,7 +126,7 @@ class ShardedKernelMachine(KernelMachine):
 
     for i in range(self.n_devices):
       if projection:
-        #### only on one gpu, does not work with multi-gpu
+        # only on one gpu, does not work with multi-gpu
         indices_list.append(indices)
         delta_list.append(delta)
       elif nystrom_update:
@@ -137,9 +137,8 @@ class ShardedKernelMachine(KernelMachine):
                                         )
         indices_list.append(indices_in_gpui)
         delta_list.append(delta[threshold_now:threshold_now+number_nystroms_in_gpui])
-        # threshold_now += number_nystroms_in_gpui
       else:
-        threshold_now = threshold_now + self.shard_kms[i].original_size #+ self.shard_kms[i].nystrom_size
+        threshold_now = threshold_now + self.shard_kms[i].original_size
         gp1_indices = np.where((indices<threshold_now) & (indices>=threshold_before))[0]
         indices_in_gpui = indices[gp1_indices] - threshold_before
         indices_list.append(indices_in_gpui)

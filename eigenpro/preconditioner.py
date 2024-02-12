@@ -26,7 +26,6 @@ class Preconditioner:
                  ) -> None:
         """Initializes the Preconditioner."""
         self._kernel_fn = kernel_fn
-        # self._weights = weights
         self._eigensys = top_eigensystem(centers, top_q_eig, kernel_fn)
         self._centers = centers
         self.lru = LRUCache()
@@ -97,7 +96,6 @@ class Preconditioner:
         """
         eigenvectors = self._eigensys.vectors
         normalized_ratios = self._eigensys.normalized_ratios
-        #return self._kernel_fn(batch,self.centers)@ (normalized_ratios*eigenvectors)
         return KmV(
             self._kernel_fn, batch, self.centers, 
             (normalized_ratios*eigenvectors),

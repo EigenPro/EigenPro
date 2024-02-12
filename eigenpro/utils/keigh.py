@@ -30,12 +30,10 @@ class KernelEigenSystem(EigenSystem):
         self.__dict__ = eigensys.__dict__
         self._beta = beta
         # Overwrites base class `_vectors`
-        self._vectors = torch.as_tensor(eigensys.vectors)#/np.sqrt(eigensys.vectors.shape[0])
+        self._vectors = torch.as_tensor(eigensys.vectors)
 
         self._normalized_ratios = torch.Tensor(
             (1 - eigensys.min_value / eigensys.values) / eigensys.values) /eigensys.vectors.shape[0]
-
-        # self._normalized_ratios= self._normalized_ratios.to(type)
 
 
 
@@ -88,7 +86,7 @@ def top_eigensystem(samples: torch.Tensor, q: int,
 
     """
     n_sample = samples.shape[0]
-    kernel_mat = kernel_fn(samples, samples)#.cpu().data.numpy()
+    kernel_mat = kernel_fn(samples, samples)
     # Obtains eigensystem for the normalized kernel matrix.
     eigensys = top_q_eig(kernel_mat / n_sample, q)
 

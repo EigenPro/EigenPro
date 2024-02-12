@@ -16,11 +16,6 @@ class MapReduceEngine():
             out = [executor.submit(f,args_done[i], args_dup_list[i]) for i in range(self.n_devices)]
 
         outs = [k.result() for k in out]
-        # # split arg in args_splits
-        # for arg in args_split:
-        #     splitted = split(arg, devices)
-        #
-        # # call f on each device
         return outs
 
     def reduce(self,outs):
