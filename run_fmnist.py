@@ -19,13 +19,17 @@ def main():
     X_train, X_test, Y_train, Y_test = load_fmnist(
         "./data/fmnist", args.n_train, args.n_test)
 
-    # Eigenpro configuration
-    dtype = torch.float16
     kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
-    # Note: if you want to run on CPU, change `dtype` to `torch.float32` since
-    # PyTorch does not support half-precision multiplication on CPU
     device = Device.create(use_gpu_if_available=True)
-
+    
+    # To run on CPU, dtype can not be `torch.float16` since
+    # PyTorch does not support half-precision multiplication on CPU.
+    if device.devices[0].type == 'cpu':
+        dtype = torch.float32
+    elif device.devices[0].type == 'cuda':
+        dtype = torch.float16
+    else:
+        raise ValueError(f"Unknown device type: {device.devices[0].type}")
 
     # Note: if you want to use the whole X as your centers switch to
     # EigenPro 2.0 which is a faster method
