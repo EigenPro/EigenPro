@@ -38,5 +38,3 @@ def get_performance(model, X, Y, batch_size=1024):
     avg_accuracy = total_accuracy / total_samples
 
     return avg_loss, avg_accuracy
-
-

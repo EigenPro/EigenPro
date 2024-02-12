@@ -25,5 +25,3 @@ class MapReduceEngine():
 
     def reduce(self,outs):
         return [out.to(self.base_device) for out in outs]
-
-

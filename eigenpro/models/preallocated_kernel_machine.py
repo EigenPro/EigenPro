@@ -197,5 +197,3 @@ class PreallocatedKernelMachine(KernelMachine):
       self.weights_project[indices] +=delta
     else:
       self._weights[indices] += delta
-
-

@@ -11,6 +11,4 @@ def parse_cmd_args():
     parser.add_argument("--s_model", type=int, help="Number of Nystrom samples for Model Preconditioner", default=2_000)
     parser.add_argument("--q_model", type=int, help="Level of Model Preconditioner", default=100)
     parser.add_argument("--epochs", type=int, help="Number of training epochs", default=2)
-    return parser.parse_args()    
-
-
+    return parser.parse_args()

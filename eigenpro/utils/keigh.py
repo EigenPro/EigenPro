@@ -1,8 +1,7 @@
 """`eigh` for kernel matrices"""
-from .svd import EigenSystem, top_q_eig
+from .eigh import EigenSystem, top_q_eig
 import numpy as np, torch
 from typing import Callable
-
 
 
 class KernelEigenSystem(EigenSystem):
@@ -96,5 +95,3 @@ def top_eigensystem(samples: torch.Tensor, q: int,
     # Obtains an upper bound for ||k(x, \cdot)||.
     beta = max(torch.diag(kernel_mat))
     return KernelEigenSystem(eigensys, beta)
-
-

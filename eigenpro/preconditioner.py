@@ -16,21 +16,20 @@ class Preconditioner:
             and returns a kernel matrix.
         centers: Tensor representing kernel centers of shape [n_centers,
             n_features].
-        weights: Weight parameters of shape [n_centers, n_outputs] corresponding
-            to the centers.
         top_q_eig: Construct top q eigensystem for preconditioning.
     """
 
     def __init__(self,
                  kernel_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
                  centers: torch.Tensor,
-                 weights: torch.Tensor,
-                 top_q_eig: int) -> None:
+                 top_q_eig: int,
+                 ) -> None:
         """Initializes the Preconditioner."""
         self._kernel_fn = kernel_fn
-        self._centers = centers
-        self._weights = weights
+        # self._weights = weights
         self._eigensys = top_eigensystem(centers, top_q_eig, kernel_fn)
+        self._centers = centers
+        self.lru = LRUCache()
 
     @property
     def eigensys(self) -> torch.Tensor:
@@ -45,16 +44,12 @@ class Preconditioner:
     def critical_batch_size(self) -> int:
         """Computes and returns the critical batch size."""
         return int(self._eigensys.beta / self._eigensys.min_value)
-    
-    @property
-    def weights(self) -> torch.Tensor:
-        """Returns weights corresponding to the centers."""
-        return self._weights
+
 
     def learning_rate(self, batch_size: int) -> float:
         """Computes and returns the learning rate based on the batch size."""
         if batch_size < self.critical_batch_size:
-            return batch_size / self._eigensys.beta / 2
+            return batch_size / self._eigensys.beta/2
         else:
             return batch_size / (self._eigensys.beta +
                                  (batch_size - 1) * self._eigensys.min_value)
@@ -62,6 +57,7 @@ class Preconditioner:
     def scaled_learning_rate(self, batch_size: int) -> float:
         """Computes and returns the scaled learning rate."""
         return 2 / batch_size * self.learning_rate(batch_size)
+
 
     def delta(self, batch_x: torch.Tensor, grad: torch.Tensor) -> torch.Tensor:
         """Computes weight delta for preconditioner centers.
@@ -75,15 +71,17 @@ class Preconditioner:
         Raises:
             None: This method is not expected to raise any exceptions.
         """
-        kernel_mat = self._kernel_fn(self._centers, batch_x)
-        # kg is of shape [n_centers, n_outputs]
-        kg = kernel_mat @ grad
-        eigenvectors = self._eigensys.vectors
-        normalized_ratios = self._eigensys.normalized_ratios
+        device = batch_x.device
 
-        # vtkg of shape [q, n_outputs]
+        kernel_mat = self._kernel_fn(self._centers.to(device), batch_x)
+        kg = kernel_mat @ grad
+        eigenvectors = self._eigensys.vectors.to(device)
+        normalized_ratios = self._eigensys.normalized_ratios.to(device)
+
         vtkg = eigenvectors.T @ kg
-        vdvtkg = eigenvectors @ (normalized_ratios * vtkg)
+        vdvtkg = (normalized_ratios*eigenvectors ) @ vtkg
+
+        del eigenvectors, normalized_ratios
 
         return vtkg,vdvtkg
 
@@ -116,5 +114,3 @@ class Preconditioner:
         """
         self._eigensys.change_type(dtype)
         self._centers = self.centers.to(dtype)
-
-

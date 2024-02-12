@@ -10,6 +10,7 @@ class Device():
     def __init__(self, devices: List[torch.device]):
         """Initializes the Device object with available devices."""
         self.devices = devices
+        self.device_base = devices[0]
 
     def __call__(self, tensor: torch.Tensor, strategy: str = "broadcast"
                  ) -> Union[torch.Tensor, List[torch.Tensor]]:

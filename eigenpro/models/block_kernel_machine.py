@@ -123,5 +123,3 @@ class BlockKernelMachine(KernelMachine):
                                           self._weight_blocks[1:]):
       copy.add_centers(center_block, weight_block)
     return copy
-
-

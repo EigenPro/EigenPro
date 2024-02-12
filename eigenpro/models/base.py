@@ -86,5 +86,3 @@ class KernelMachine:
   def shallow_copy(self) -> 'KernelMachine':
     """A dummy shallow copy that returns the current instance."""
     return self
-
-

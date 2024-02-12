@@ -162,8 +162,3 @@ class ShardedKernelMachine(KernelMachine):
     with ThreadPoolExecutor() as executor:
       [executor.submit(self.shard_kms[i].reset())
                          for i in range(self.n_devices)]
-
-
-
-
-

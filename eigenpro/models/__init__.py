@@ -27,5 +27,3 @@ def create_kernel_model(centers, n_outputs, kernel_fn,device, dtype=torch.float3
     del list_of_centers
     # ipdb.set_trace()
     return ShardedKernelMachine(kms, device)
-
-
