@@ -3,7 +3,6 @@ import torch
 from .models.base import KernelMachine
 from .preconditioner import Preconditioner
 
-import ipdb
 
 class EigenPro:
     """EigenPro optimizer for kernel machines.

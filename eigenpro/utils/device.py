@@ -2,7 +2,7 @@ import torch
 from torch.cuda.comm import broadcast
 from typing import List, Union
 from termcolor import colored
-import ipdb
+
 
 class Device():
     """Handles tensor operations across multiple devices."""

@@ -5,8 +5,6 @@ from torch.nn.functional import one_hot
 import os
 from os.path import join as pjoin
 
-import ipdb
-
 
 class Cifar5mDataset():
 
