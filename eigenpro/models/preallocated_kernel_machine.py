@@ -1,11 +1,11 @@
 import torch
-from .base import KernelMachine
+import eigenpro.models.kernel_machine as km
 from typing import Callable, List, Optional
 from ..utils.cache import LRUCache
 from ..utils.fmm import KmV
 
 
-class PreallocatedKernelMachine(KernelMachine):
+class PreallocatedKernelMachine(km.KernelMachine):
   """Kernel machine class for handling kernel methods.
 
   Attributes:

@@ -1,9 +1,9 @@
 import torch
-from .base import KernelMachine
+import eigenpro.models.kernel_machine as km
 from typing import Callable, List, Optional
 
 
-class BlockKernelMachine(KernelMachine):
+class BlockKernelMachine(km.KernelMachine):
   """Block kernel machine class for handling kernel methods.
 
   Provides methods for creating and manipulating kernel machines including

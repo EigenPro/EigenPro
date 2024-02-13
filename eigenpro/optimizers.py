@@ -1,6 +1,7 @@
 """Optimizer class and utility functions for EigenPro iteration."""
 import torch
-from .models.base import KernelMachine
+
+import eigenpro.models.kernel_machine as km
 from .preconditioner import Preconditioner
 
 
@@ -22,7 +23,7 @@ class EigenPro:
     """
 
     def __init__(self,
-                 model: KernelMachine,
+                 model: km.KernelMachine,
                  threshold_index: int,
                  data_preconditioner: Preconditioner,
                  model_preconditioner: Preconditioner,
@@ -52,7 +53,7 @@ class EigenPro:
 
 
     @property
-    def model(self) -> KernelMachine:
+    def model(self) -> km.KernelMachine:
         """Gets the active model (for training).
 
         Returns:

@@ -1,15 +1,16 @@
-import torch, numpy as np
-from .base import KernelMachine
 from typing import Callable, List, Optional
-from .preallocated_kernel_machine import PreallocatedKernelMachine
-from ..utils.cache import LRUCache
+import torch, numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import eigenpro.models.kernel_machine as km
+import eigenpro.models.preallocated_kernel_machine as pkm
+from ..utils.cache import LRUCache
 
-class ShardedKernelMachine(KernelMachine):
+
+class ShardedKernelMachine(km.KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
 
-  def __init__(self, kms: List[PreallocatedKernelMachine], device: 'Device' ):
+  def __init__(self, kms: List[pkm.PreallocatedKernelMachine], device: 'Device' ):
     self.device = device
     self.shard_kms = kms
     self.n_devices = len(kms)
