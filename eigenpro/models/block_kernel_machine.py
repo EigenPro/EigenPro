@@ -1,6 +1,7 @@
-import torch
-import eigenpro.models.kernel_machine as km
 from typing import Callable, List, Optional
+import torch
+
+import eigenpro.models.kernel_machine as km
 
 
 class BlockKernelMachine(km.KernelMachine):

@@ -1,6 +1,8 @@
-from typing import Callable, List, Optional
-import torch, numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, List, Optional
+
+import numpy as np
+import torch
 
 import eigenpro.models.kernel_machine as km
 import eigenpro.models.preallocated_kernel_machine as pkm

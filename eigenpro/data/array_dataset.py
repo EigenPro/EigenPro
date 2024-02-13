@@ -1,9 +1,9 @@
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+import torch.utils.data as torch_data
 
 
-class ArrayDataset(Dataset):
+class ArrayDataset(torch_data.Dataset):
     """A custom dataset to handle data along with their IDs and optional ID ranges."""
 
     def __init__(self, data_x, data_y, id_start=None, id_end=None):

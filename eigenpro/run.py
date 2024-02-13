@@ -1,15 +1,17 @@
 import time
+
 import numpy as np
-import eigenpro.kernels as kernels
-import eigenpro.preconditioner as pcd
-import eigenpro.data.array_dataset as array_dataset
-import eigenpro.optimizers as opt
+from tabulate import tabulate
+from termcolor import colored
+from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader
+
+import eigenpro.data.array_dataset as array_dataset
+import eigenpro.kernels as kernels
+import eigenpro.preconditioner as pcd
+import eigenpro.optimizers as opt
 import eigenpro.utils.mapreduce as mapreduce
-from termcolor import colored
-from tabulate import tabulate
-from tqdm import tqdm 
 import eigenpro.utils.metrics as metrics
 
 

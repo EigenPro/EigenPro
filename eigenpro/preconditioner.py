@@ -2,11 +2,14 @@
     Preconditioner class and utility functions for EigenPro iteration.
 """
 from typing import Callable
+
 import numpy as np
 import torch
+
 import eigenpro.utils.cache as cache
 import eigenpro.utils.keigh as keigh
 import eigenpro.utils.fmm as fmm
+
 
 class Preconditioner:
     """Class for preconditioning based on a given kernel function and centers.

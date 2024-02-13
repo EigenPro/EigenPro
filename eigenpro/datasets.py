@@ -1,9 +1,8 @@
-import numpy as np
-
-import torch
-from torch.nn.functional import one_hot
 import os
 from os.path import join as pjoin
+
+import numpy as np
+import torch
 
 
 class Cifar5mDataset():

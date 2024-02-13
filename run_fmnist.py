@@ -1,16 +1,14 @@
 import multiprocessing
+
 import numpy as np
 import torch
-import numpy as np
-from torch.nn.functional import one_hot
-from torch.utils.data import DataLoader
 
-from eigenpro.utils.device import Device
-from eigenpro.run import run_eigenpro
-from eigenpro.kernels import laplacian
-from eigenpro.utils.cmd import parse_cmd_args
 import eigenpro.data.utils as data_utils
+from eigenpro.kernels import laplacian
 import eigenpro.models.sharded_kernel_machine as skm
+from eigenpro.run import run_eigenpro
+from eigenpro.utils.cmd import parse_cmd_args
+from eigenpro.utils.device import Device
 
 
 def main():
