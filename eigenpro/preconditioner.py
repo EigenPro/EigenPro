@@ -4,9 +4,9 @@
 from typing import Callable
 import numpy as np
 import torch
-from .utils.cache import LRUCache
-from .utils.keigh import top_eigensystem
-from .utils.fmm import KmV
+import eigenpro.utils.cache as cache
+import eigenpro.utils.keigh as keigh
+import eigenpro.utils.fmm as fmm
 
 class Preconditioner:
     """Class for preconditioning based on a given kernel function and centers.
@@ -26,9 +26,9 @@ class Preconditioner:
                  ) -> None:
         """Initializes the Preconditioner."""
         self._kernel_fn = kernel_fn
-        self._eigensys = top_eigensystem(centers, top_q_eig, kernel_fn)
+        self._eigensys = keigh.top_eigensystem(centers, top_q_eig, kernel_fn)
         self._centers = centers
-        self.lru = LRUCache()
+        self.lru = cache.LRUCache()
 
     @property
     def eigensys(self) -> torch.Tensor:
@@ -96,7 +96,7 @@ class Preconditioner:
         """
         eigenvectors = self._eigensys.vectors
         normalized_ratios = self._eigensys.normalized_ratios
-        return KmV(
+        return fmm.KmV(
             self._kernel_fn, batch, self.centers, 
             (normalized_ratios*eigenvectors),
             row_chunk_size = 2**16)

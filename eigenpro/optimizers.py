@@ -2,7 +2,7 @@
 import torch
 
 import eigenpro.models.kernel_machine as km
-from .preconditioner import Preconditioner
+import eigenpro.preconditioner as pcd
 
 
 class EigenPro:
@@ -25,8 +25,8 @@ class EigenPro:
     def __init__(self,
                  model: km.KernelMachine,
                  threshold_index: int,
-                 data_preconditioner: Preconditioner,
-                 model_preconditioner: Preconditioner,
+                 data_preconditioner: pcd.Preconditioner,
+                 model_preconditioner: pcd.Preconditioner,
                  kz_xs_evecs:torch.tensor = None,
                  dtype=torch.float32,
                  accumulated_gradients:bool = False,) -> None:

@@ -1,16 +1,16 @@
 import time
 import numpy as np
-from .kernels import laplacian
-from .preconditioner import Preconditioner
-from .data.array_dataset import ArrayDataset
-from .optimizers import EigenPro
+import eigenpro.kernels as kernels
+import eigenpro.preconditioner as pcd
+import eigenpro.data.array_dataset as array_dataset
+import eigenpro.optimizers as opt
 import torch
 from torch.utils.data import DataLoader
-from .utils.mapreduce import MapReduceEngine
+import eigenpro.utils.mapreduce as mapreduce
 from termcolor import colored
 from tabulate import tabulate
 from tqdm import tqdm 
-from .utils.metrics import get_performance
+import eigenpro.utils.metrics as metrics
 
 
 def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
@@ -49,7 +49,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     d_out = Y.shape[-1]
     device_base = device.device_base
     if kernel is None:
-        kernel_fn = lambda x, z: laplacian(x, z, bandwidth= 20.0)
+        kernel_fn = lambda x, z: kernels.laplacian(x, z, bandwidth= 20.0)
     else:
         kernel_fn = kernel
 
@@ -61,8 +61,8 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     nys_data_indices = np.random.choice(X.shape[0], s_data, replace=False)
     nys_data = X[nys_data_indices, :].to(device_base)
 
-    data_preconditioner = Preconditioner(kernel_fn, nys_data, q_data)
-    model_preconditioner = Preconditioner(kernel_fn, nys_model, q_model)
+    data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, q_data)
+    model_preconditioner = pcd.Preconditioner(kernel_fn, nys_model, q_model)
                    
     data_preconditioner.change_type(dtype=dtype)
     model_preconditioner.change_type(dtype=dtype)
@@ -71,13 +71,13 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
 
     # data loader
-    dataset = ArrayDataset(X, Y)
+    dataset = array_dataset.ArrayDataset(X, Y)
     data_batch_size = min(10_000, data_preconditioner.critical_batch_size)
     model_batch_size = min(10_000, model_preconditioner.critical_batch_size)
     train_dataloader = DataLoader(dataset, batch_size=data_batch_size , shuffle=True)
 
     # optimizer
-    optimizer = EigenPro(model, p, data_preconditioner,model_preconditioner,kz_xs_evecs,dtype,
+    optimizer = opt.EigenPro(model, p, data_preconditioner,model_preconditioner,kz_xs_evecs,dtype,
                          accumulated_gradients=accumulated_gradients)
     # projection frequency
     if T is None:
@@ -131,7 +131,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
                 torch.cuda.empty_cache()
 
             if ( (project_counter + 1) % T == 0 or (t==len(train_dataloader)-1) ) and accumulated_gradients:
-                projection_dataset = ArrayDataset(model.centers[0], optimizer.grad_accumulation)
+                projection_dataset = array_dataset.ArrayDataset(model.centers[0], optimizer.grad_accumulation)
                 projection_loader = DataLoader(projection_dataset,
                                                batch_size=model_batch_size, shuffle=True)
                 for _ in range(1):
@@ -153,7 +153,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
 
             if wandb is not None:
-                loss_test, accu_test = get_performance(model, x, y)
+                loss_test, accu_test = metrics.get_performance(model, x, y)
                 wandb.log({'test loss': loss_test.item(),
                            'test accuracy': accu_test})
 
@@ -162,7 +162,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
-        loss_test, accu_test = get_performance(model, x, y)
+        loss_test, accu_test = metrics.get_performance(model, x, y)
         # Print epoch summary using tabulate
         epoch_summary = [
             ["Test Loss", f"{loss_test:.10f}"],
