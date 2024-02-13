@@ -1,0 +1,1 @@
+python run_example.py --dataset=fmnist
