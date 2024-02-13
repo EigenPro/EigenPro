@@ -1,8 +1,8 @@
 import torch
 import eigenpro.models.kernel_machine as km
 from typing import Callable, List, Optional
-from ..utils.cache import LRUCache
-from ..utils.fmm import KmV
+import eigenpro.utils.cache as cache
+import eigenpro.utils.fmm as fmm
 
 
 class PreallocatedKernelMachine(km.KernelMachine):
@@ -63,7 +63,7 @@ class PreallocatedKernelMachine(km.KernelMachine):
     self.used_capacity = 0
     self.add_centers(centers, weights)
 
-    self.lru = LRUCache()
+    self.lru = cache.LRUCache()
 
   @property
   def n_centers(self) -> int:
@@ -109,7 +109,7 @@ class PreallocatedKernelMachine(km.KernelMachine):
     else:
       poriginal = kernel_mat[:, :self.original_size] @ weights[:self.original_size, :]
       if centers.shape[0] > self.original_size:
-        prest = KmV(
+        prest = fmm.KmV(
             self._kernel_fn, x, 
             centers[self.original_size:],
             weights[self.original_size:],

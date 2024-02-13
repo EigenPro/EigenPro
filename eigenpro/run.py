@@ -7,7 +7,6 @@ from .optimizers import EigenPro
 import torch
 from torch.utils.data import DataLoader
 from .utils.mapreduce import MapReduceEngine
-from .models import create_kernel_model
 from termcolor import colored
 from tabulate import tabulate
 from tqdm import tqdm 

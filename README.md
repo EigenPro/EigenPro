@@ -74,10 +74,11 @@ pip install git+ssh://git@github.com/EigenPro/EigenPro.git@main
 
 ```python
 import torch
+
 from eigenpro.utils.device import Device
 from eigenpro.kernels import laplacian
-from eigenpro.models import create_kernel_model
 from eigenpro.run import run_eigenpro
+import eigenpro.models.sharded_kernel_machine as skm
 
 n, p, d, c = 500, 100, 5, 2
 
@@ -89,7 +90,7 @@ Y_train, Y_test = X_train @ W_star, X_test @ W_star
 dtype=torch.float32
 kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
 device = Device.create(use_gpu_if_available=True)
-model = create_kernel_model(Z, c, kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
+model = skm.create_sharded_kernel_machine(Z, c, kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
 
 sd, sm, qd, qm = 10, 10, 3, 3 # configuration for EigenPro preconditioners
 model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,

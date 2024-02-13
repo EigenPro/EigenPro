@@ -2,21 +2,21 @@ import multiprocessing
 import numpy as np
 import torch
 import numpy as np
-
 from torch.nn.functional import one_hot
 from torch.utils.data import DataLoader
+
 from eigenpro.utils.device import Device
 from eigenpro.run import run_eigenpro
 from eigenpro.kernels import laplacian
 from eigenpro.utils.cmd import parse_cmd_args
-from eigenpro.data.utils import load_fmnist
-from eigenpro.models import create_kernel_model
+import eigenpro.data.utils as data_utils
+import eigenpro.models.sharded_kernel_machine as skm
 
 
 def main():
     args = parse_cmd_args()
 
-    X_train, X_test, Y_train, Y_test = load_fmnist(
+    X_train, X_test, Y_train, Y_test = data_utils.load_fmnist(
         "./data/fmnist", args.n_train, args.n_test)
 
     kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
@@ -44,8 +44,9 @@ def main():
                                                replace=False)
         Z = X_train[centers_set_indices,:]
 
-    model = create_kernel_model(Z, Y_train.shape[-1], kernel_fn, device,
-                                dtype=dtype, tmp_centers_coeff=2)
+    model = skm.create_sharded_kernel_machine(
+        Z, Y_train.shape[-1], kernel_fn, device, dtype=dtype,
+        tmp_centers_coeff=2)
 
     model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device,
                          dtype=dtype, kernel=kernel_fn, s_data=args.s_data,
