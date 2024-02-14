@@ -7,7 +7,8 @@ class ArrayDataset(torch_data.Dataset):
     """A custom dataset to handle data along with their IDs and optional ID ranges."""
 
     def __init__(self, data_x, data_y, id_start=None, id_end=None):
-        assert len(data_x) == len(data_y), "Data_x and Data_y must have the same length"
+        assert len(data_x) == len(data_y),\
+            "Data_x and Data_y must have the same length"
 
         if isinstance(data_x, np.ndarray):
             data_x = torch.tensor(data_x, dtype=torch.float32)

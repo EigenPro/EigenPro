@@ -33,7 +33,8 @@ class PreallocatedKernelMachine(km.KernelMachine):
         n_outputs (int): The number of outputs.
         centers (torch.Tensor): The tensor of kernel centers.
         dtype: Data type, e.g. torch.float32 or torch.float16
-        tmp_centers_coeff: the ratio between total centers(temporary included) and original centers
+        tmp_centers_coeff: the ratio between total centers(temporary included)
+          and original centers
         preallocation_size (int, optional): The size for preallocation.
         weights (torch.Tensor, optional): The tensor of weights.
         device (torch.device, optional): The device for tensor operations.
@@ -47,19 +48,20 @@ class PreallocatedKernelMachine(km.KernelMachine):
     self.nystrom_size = 0
 
     if preallocation_size is None:
-      self._centers = torch.zeros(tmp_centers_coeff * centers.shape[0], centers.shape[1],
-                                  device=device,dtype=self.dtype )
-      self._weights = torch.zeros(tmp_centers_coeff * centers.shape[0], self._n_outputs,
-                                  device=device,dtype=self.dtype)
+      self._centers = torch.zeros(tmp_centers_coeff * centers.shape[0],
+                                  centers.shape[1], device=device,
+                                  dtype=self.dtype )
+      self._weights = torch.zeros(tmp_centers_coeff * centers.shape[0],
+                                  self._n_outputs, device=device,
+                                  dtype=self.dtype)
     else:
       self._centers = torch.zeros(preallocation_size, centers.shape[1],
-                                  device=device,dtype=self.dtype)
+                                  device=device, dtype=self.dtype)
       self._weights = torch.zeros(preallocation_size, self._n_outputs,
-                                  device=device,dtype=self.dtype)
+                                  device=device, dtype=self.dtype)
 
     self.weights_project = torch.zeros(centers.shape[0], self._n_outputs,
-                                  device=device,dtype=self.dtype)
-
+                                  device=device, dtype=self.dtype)
 
     self.used_capacity = 0
     self.add_centers(centers, weights)
@@ -81,13 +83,15 @@ class PreallocatedKernelMachine(km.KernelMachine):
     """Return the weights."""
     return self._weights[:self.size]
 
-  def forward(self, x: torch.Tensor, projection:bool = False, train=True) -> torch.Tensor:
+  def forward(self, x: torch.Tensor, projection: bool=False,
+              train=True) -> torch.Tensor:
     """Forward pass for the kernel machine.
 
     Args:
         x (torch.Tensor): input tensor of shape [n_samples, n_features].
         projection(bool): Projection mode, updating projection weights
-        train(bool): Train mode, storing kernel_mat[:, :self.original_size].T in cache
+        train(bool): Train mode, storing kernel_mat[:, :self.original_size].T
+          in cache
 
     Returns:
         torch.Tensor: tensor of shape [n_samples, n_outputs].
@@ -108,7 +112,8 @@ class PreallocatedKernelMachine(km.KernelMachine):
     if projection:
       predictions = kernel_mat @ self.weights_project
     else:
-      poriginal = kernel_mat[:, :self.original_size] @ weights[:self.original_size, :]
+      poriginal = kernel_mat[:, :self.original_size
+                             ] @ weights[:self.original_size, :]
       if centers.shape[0] > self.original_size:
         prest = fmm.KmV(
             self._kernel_fn, x, 
@@ -150,13 +155,15 @@ class PreallocatedKernelMachine(km.KernelMachine):
       weights = torch.zeros((centers.shape[0], self.n_outputs),
                             device=self.device)
 
-    if self.used_capacity + centers.shape[0] > self.tmp_centers_coeff * self.original_size:
+    if (self.used_capacity + centers.shape[0] >
+        self.tmp_centers_coeff * self.original_size):
       print("error")
       raise ValueError(f"Out of capacity for new centers: "
-                       f"{self.used_capacity=} > {self.tmp_centers_coeff} * ({self.original_size=})")
+                       f"{self.used_capacity=} > "
+                       f"{self.tmp_centers_coeff} * ({self.original_size=})")
 
-    self._centers[self.used_capacity:self.used_capacity +
-                                     centers.shape[0], :] = centers.to(self.dtype).to(self.device)
+    self._centers[self.used_capacity:self.used_capacity + centers.shape[0],
+                  :] = centers.to(self.dtype).to(self.device)
     self._weights[self.used_capacity:self.used_capacity +
                                      centers.shape[0], :] = weights
     self.used_capacity += centers.shape[0]

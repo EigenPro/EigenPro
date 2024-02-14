@@ -5,7 +5,7 @@ from tabulate import tabulate
 from termcolor import colored
 from tqdm import tqdm
 import torch
-from torch.utils.data import DataLoader
+import torch.utils.data as torch_data
 
 import eigenpro.data.array_dataset as array_dataset
 import eigenpro.kernels as kernels
@@ -76,7 +76,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     dataset = array_dataset.ArrayDataset(X, Y)
     data_batch_size = min(10_000, data_preconditioner.critical_batch_size)
     model_batch_size = min(10_000, model_preconditioner.critical_batch_size)
-    train_dataloader = DataLoader(dataset, batch_size=data_batch_size , shuffle=True)
+    train_dataloader = torch_data.DataLoader(dataset, batch_size=data_batch_size , shuffle=True)
 
     # optimizer
     optimizer = opt.EigenPro(model, p, data_preconditioner,model_preconditioner,kz_xs_evecs,dtype,
@@ -134,8 +134,8 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
             if ( (project_counter + 1) % T == 0 or (t==len(train_dataloader)-1) ) and accumulated_gradients:
                 projection_dataset = array_dataset.ArrayDataset(model.centers[0], optimizer.grad_accumulation)
-                projection_loader = DataLoader(projection_dataset,
-                                               batch_size=model_batch_size, shuffle=True)
+                projection_loader = torch_data.DataLoader(
+                    projection_dataset, batch_size=model_batch_size, shuffle=True)
                 for _ in range(1):
                     for z_batch, grad_batch, id_batch in tqdm(
                             projection_loader, 

@@ -3,7 +3,6 @@
 """
 from typing import Callable
 
-import numpy as np
 import torch
 
 import eigenpro.utils.cache as cache
@@ -23,7 +22,8 @@ class Preconditioner:
     """
 
     def __init__(self,
-                 kernel_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+                 kernel_fn: Callable[[torch.Tensor, torch.Tensor],
+                                     torch.Tensor],
                  centers: torch.Tensor,
                  top_q_eig: int,
                  ) -> None:
@@ -68,7 +68,8 @@ class Preconditioner:
             grad (torch.Tensor): Of shape `[batch_size, n_outputs]`.
 
         Returns:
-            torch.Tensor, torch.Tensor: Of Shape `[q, n_outputs]`, `[n_centers, n_outputs]` respectively.
+            torch.Tensor: Of Shape `[q, n_outputs]`
+            torch.Tensor: Of Shape `[n_centers, n_outputs]`
 
         Raises:
             None: This method is not expected to raise any exceptions.
@@ -85,7 +86,7 @@ class Preconditioner:
 
         del eigenvectors, normalized_ratios
 
-        return vtkg,vdvtkg
+        return vtkg, vdvtkg
 
     def eval_vec(self,batch):
         """Computes K(X_s,batch)@(D*E) which is a part of correction term

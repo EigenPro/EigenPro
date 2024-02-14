@@ -1,7 +1,7 @@
 '''Utility functions for performing fast SVD.'''
 import torch
 import numpy as np
-import scipy.linalg as linalg
+import scipy as sp
 
 
 class EigenSystem:
@@ -96,7 +96,7 @@ def top_q_eig(matrix: torch.Tensor, q: int) -> EigenSystem:
     assert matrix.shape[0] == matrix.shape[1], "Matrix should be square."
 
     n_sample = matrix.shape[0]
-    eigenvalues, eigenvectors = linalg.eigh(
+    eigenvalues, eigenvectors = sp.linalg.eigh(
         matrix, eigvals=(n_sample - q-1, n_sample - 1))
     eigenvalues = torch.from_numpy(np.flip(eigenvalues).copy()).to(device)
     eigenvectors = torch.from_numpy(np.fliplr(eigenvectors).copy()).to(device)

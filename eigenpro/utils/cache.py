@@ -6,5 +6,6 @@ class LRUCache():
     return self.cache.get(key, -1)
 
   def put(self, key: int, value: int) -> None:
-    self.cache.clear()  # Since capacity is 1, clear the cache before adding a new item
+    # Since capacity is 1, clear the cache before adding a new item
+    self.cache.clear()
     self.cache[key] = value

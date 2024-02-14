@@ -13,7 +13,8 @@ class MapReduceEngine():
             args_dup_list = self.device(args_dup)
 
         with ThreadPoolExecutor() as executor:
-            out = [executor.submit(f,args_done[i], args_dup_list[i]) for i in range(self.n_devices)]
+            out = [executor.submit(f,args_done[i], args_dup_list[i])
+                   for i in range(self.n_devices)]
 
         outs = [k.result() for k in out]
         return outs

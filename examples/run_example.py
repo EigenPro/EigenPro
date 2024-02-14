@@ -19,7 +19,8 @@ def dataset_type(dataset_name):
     try:
         return Dataset[dataset_name.upper()]
     except KeyError:
-        raise argparse.ArgumentTypeError(f"{dataset_name} is not a valid dataset name.")
+        raise argparse.ArgumentTypeError(
+            f"{dataset_name} is not a valid dataset name.")
 
 def parse_cmd_args():
     parser = argparse.ArgumentParser()
