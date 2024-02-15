@@ -28,7 +28,13 @@ Windows:
 ```
 examples\run_fmnist.bat
 ```
-See files under `examples` for more details.
+
+Jupyter Notebook:
+[examples/notebook.ipynb](https://github.com/EigenPro/EigenPro/blob/main/examples/notebook.ipynb)
+
+
+See files under `examples/` for more details.
+
 
 ## Empirical Results
 In the experiments described below, `P` denotes the number of centers (model size), essentially representing the model size, while 'd' signifies the ambient dimension. For all experiments, a Laplacian kernel with a bandwidth of 20.0 was employed.
