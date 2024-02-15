@@ -6,7 +6,7 @@ It is currently based on a PyTorch backend.
 ## Highlights
 - *Fast*: EigenPro is the fastest kernel method at large scale.
 - *Plug-and-play*: Our method learns a quality model with little hyper-parameter tuning in most cases.
-- *Scalable*: The training time of one epoch is nearly linear in both model size and data size. As far as we know, this is the first kernel method that achieves such scalability without any compromise on testing performance.
+- *Scalable*: The training time of one epoch is nearly linear in both model size and data size. This is the first kernel method that achieves such scalability without any compromise on testing performance.
 
 ## Coming Soon
 - *Support for multi-GPU and model-parallelism*: We are adding support for multiple GPUs and model-parallelism.
