@@ -49,8 +49,7 @@ All of these experiments were run on a **single A100** GPU. The maximum RAM we h
 
 ### 2. Libri speach Extracted Features on single GPU
 
-We used **10 million samples** with **d = 1024** for **one epoch** for two versions of EigenPro and FALKON. All of these experiments were run on a **single V100** GPU. The maximum RAM available for this experiment was 300GB, which was not sufficient for FALKON with more than 128K centers. The features are extracted through a well-trained acoustic model (a VGG+BLSTM architecture in [[7]](#References) to align the length of audio and text. This is a 301-wise classification task where different class represents different uni-gram [[8]](#References).
-The implementation of extracting features is based on the ESPnet toolkit [[9]](#References) .
+We used **10 million samples** with **d = 1024** for **one epoch** for two versions of EigenPro and FALKON. All of these experiments were run on a **single V100** GPU. The maximum RAM available for this experiment was 300GB, which was not sufficient for FALKON with more than 128K centers. The features are extracted using an acoustic model (a VGG+BLSTM architecture in [[7]](#References)) to align the length of audio and text.
 
 | Method      | P = 64k         |            | P = 128k        |            | P = 256k        |            | P = 512k        |            | P = 1024k       |            |
 |-------------|-----------------|------------|-----------------|------------|-----------------|------------|-----------------|------------|-----------------|------------|
@@ -69,7 +68,5 @@ The implementation of extracting features is based on the ESPnet toolkit [[9]](#
 5. Alessandro Rudi, Luigi Carratino, Lorenzo Rosasco, “FALKON: An optimal large scale kernel method,” Advances in Neural Information Processing Systems, 2017. [Link](https://papers.nips.cc/paper_files/paper/2017/file/05546b0e38ab9175cd905eebcc6ebb76-Paper.pdf)
 6. Ulysse Marteau-Ferey, Francis Bach, Alessandro Rudi, “Globally Convergent Newton Methods for Ill-conditioned Generalized Self-concordant Losses,” Advances in Neural Information Processing Systems, 2019. [Link](https://arxiv.org/pdf/1907.01771.pdf)
 7. Hui, L. and Belkin, M. "Evaluation of Neural Architectures Trained with Square Loss vs Cross-Entropy in Classification Tasks." In International Conference on Learning Representations, 2021. [Link](https://arxiv.org/abs/2006.07322)
-8. Jurafsky, D. Speech & language processing. Pearson Education India, 2000
-9. Watanabe, et. al. ESPnet: Toward large kernel models End-to-end speech processing toolkit. In Proceedingsof Interspeech, pp. 2207–2211, 2018. doi: 10.21437/Interspeech.2018-1456 [Link](https://www.isca-speech.org/archive/interspeech_2018/watanabe18_interspeech.html)
 
 # Cite us
