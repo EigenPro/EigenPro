@@ -1,7 +1,8 @@
 numpy>=1.19.2
 pytest>=7.4.2
+pytorch>=2.1
 scipy>=1.10.1
+tabulate
+termcolor
 tqdm
 wandb
-termcolor
-tabulate
