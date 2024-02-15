@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 from tabulate import tabulate
 from termcolor import colored
