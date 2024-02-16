@@ -8,7 +8,7 @@ import torch
 import eigenpro.data.utils as data_utils
 import eigenpro.kernels as kernels
 import eigenpro.models.sharded_kernel_machine as skm
-import eigenpro.run as run
+import eigenpro.solver as solver
 import eigenpro.utils.device as dev
 
 
@@ -75,11 +75,11 @@ def main():
         Z, Y_train.shape[-1], kernel_fn, device, dtype=dtype,
         tmp_centers_coeff=2)
 
-    model = run.run_eigenpro(model, X_train, Y_train, X_test, Y_test, device,
-                         dtype=dtype, kernel=kernel_fn, s_data=args.s_data,
-                         s_model=args.s_model, q_data=args.q_data,
-                         q_model=args.q_model, wandb=None, epochs=args.epochs,
-                         accumulated_gradients=accumulated_gradients)
+    model = solver.fit(model, X_train, Y_train, X_test, Y_test, device,
+                       dtype=dtype, kernel=kernel_fn, s_data=args.s_data,
+                       s_model=args.s_model, q_data=args.q_data,
+                       q_model=args.q_model, wandb=None, epochs=args.epochs,
+                       accumulated_gradients=accumulated_gradients)
 
 if __name__ == '__main__':
     # Call freeze_support() at the very beginning of the

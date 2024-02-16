@@ -13,10 +13,12 @@ import eigenpro.utils.mapreduce as mapreduce
 import eigenpro.utils.metrics as metrics
 
 
-def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
-                 s_data=3_000, s_model=3_000, q_data=150, q_model=150,
-                 tmp_centers_coeff=2, wandb=None, T=None, epochs=1, accumulated_gradients=True):
-    """wrapper to run eigenpro
+def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
+        s_data=3_000, s_model=3_000, q_data=150, q_model=150,
+        tmp_centers_coeff=2, wandb=None, T=None, epochs=1,
+        accumulated_gradients=True):
+    """Fit a kernel model using EigenPro method.
+
     Args:
         Z (torch.Tensor): centers. input tensor of shape [n_centers, n_features].
         X (torch.Tensor): training samples. input tensor of shape [n_samples, n_features].
@@ -37,7 +39,6 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         epochs(int): number of epochs to run over the training samples
         accumulated_gradients: It should be true if Z and X are different, but if they are the same set this to False
                                for faster convergence.
-
 
     Returns:
         model(object): the trained model will be returned
