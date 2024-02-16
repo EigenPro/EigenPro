@@ -38,6 +38,7 @@ See files under `examples/` for more details.
 
 ## Empirical Results
 In the experiments described below, `P` denotes the number of centers (model size), essentially representing the model size, while 'd' signifies the ambient dimension. For all experiments, a Laplacian kernel with a bandwidth of 20.0 was employed.
+For a performance comparison with different GPUs, CPUs, and OSes, see [here](https://github.com/EigenPro/EigenPro/issues/5).
 
 ### 1. CIFAR5M Extracted Features on single GPU
 
