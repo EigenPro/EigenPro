@@ -1,0 +1,7 @@
+.gitignore
+.ipynb_checkpoints
+
+__data__
+__pycache__
+
+eigenpro.egg-info

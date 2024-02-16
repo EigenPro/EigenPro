@@ -1,20 +1,24 @@
-import torch, numpy as np
-from .base import KernelMachine
-from typing import Callable, List, Optional
-from .preallocated_kernel_machine import PreallocatedKernelMachine
-from ..utils.cache import LRUCache
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, List, Optional
+
+import numpy as np
+import torch
+
+import eigenpro.models.kernel_machine as km
+import eigenpro.models.preallocated_kernel_machine as pkm
+import eigenpro.utils.cache as cache
+import eigenpro.utils.device as device
 
 
-class ShardedKernelMachine(KernelMachine):
+class ShardedKernelMachine(km.KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
 
-  def __init__(self, kms: List[PreallocatedKernelMachine], device: 'Device' ):
+  def __init__(self, kms: List[km.KernelMachine], device: device.Device ):
     self.device = device
     self.shard_kms = kms
     self.n_devices = len(kms)
     self.n_machines = len(kms)
-    self.lru = LRUCache()
+    self.lru = cache.LRUCache()
     super().__init__(
         kms[0].kernel_fn, 
         kms[0].n_outputs, 
@@ -161,3 +165,47 @@ class ShardedKernelMachine(KernelMachine):
     with ThreadPoolExecutor() as executor:
       [executor.submit(self.shard_kms[i].reset())
                          for i in range(self.n_devices)]
+
+def create_sharded_kernel_machine(centers: torch.Tensor, n_outputs: int, kernel_fn: Callable,
+                                  device: device.Device, dtype: torch.dtype=torch.float32,
+                                  tmp_centers_coeff: int = 2) -> ShardedKernelMachine:
+    """Creates a sharded kernel machine for distributed computation.
+
+    This function divides the input centers among available devices and initializes
+    a list of PreallocatedKernelMachines, each on a different device. It then creates
+    and returns a ShardedKernelMachine that manages these distributed kernel machines.
+
+    Args:
+        centers: The tensor of centers used for the kernel machines, with shape [n_centers, n_features].
+        n_outputs: The number of outputs for the kernel machine.
+        kernel_fn: The kernel function to be used in the kernel machine.
+        device: The device (or device manager) handling distribution of computation.
+        dtype: The data type for computation, default is torch.float32.
+        tmp_centers_coeff: Coefficient to determine the number of temporary centers, default is 2.
+
+    Returns:
+        A ShardedKernelMachine instance that manages the distributed kernel machines.
+
+    """
+    # Divide the centers among available GPUs as per the provided strategy
+    list_of_centers = device(centers, strategy="divide_to_gpu")
+    
+    # Initialize kernel machines for each set of divided centers
+    kms: List[pkm.PreallocatedKernelMachine] = []
+    for i, centers_i in enumerate(list_of_centers):
+        kms.append(
+            pkm.PreallocatedKernelMachine(
+                kernel_fn=kernel_fn, 
+                n_outputs=n_outputs, 
+                centers=centers_i, 
+                dtype=dtype, 
+                device=device.devices[i],
+                tmp_centers_coeff=tmp_centers_coeff
+            )
+        )
+
+    # Clear the list to potentially free up memory
+    del list_of_centers
+
+    # Create and return the sharded kernel machine with the initialized kernel machines
+    return ShardedKernelMachine(kms, device)

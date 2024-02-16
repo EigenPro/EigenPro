@@ -1,10 +1,13 @@
 """`eigh` for kernel matrices"""
-from .eigh import EigenSystem, top_q_eig
-import numpy as np, torch
 from typing import Callable
 
+import numpy as np
+import torch
 
-class KernelEigenSystem(EigenSystem):
+import eigenpro.utils.eigh as eigh
+
+
+class KernelEigenSystem(eigh.EigenSystem):
     """Extends the EigenSystem class for EigenPro kernel preconditioning.
 
     Attributes:
@@ -17,7 +20,7 @@ class KernelEigenSystem(EigenSystem):
         vectors (np.ndarray): The eigenvectors in the same order of values.
     """
 
-    def __init__(self, eigensys: EigenSystem, beta: float) -> None:
+    def __init__(self, eigensys: eigh.EigenSystem, beta: float) -> None:
         """Initialize an KernelEigenSystem instance.
 
         Args:
@@ -32,9 +35,9 @@ class KernelEigenSystem(EigenSystem):
         # Overwrites base class `_vectors`
         self._vectors = torch.as_tensor(eigensys.vectors)
 
-        self._normalized_ratios = (1 - eigensys.min_value / eigensys.values) / eigensys.values /eigensys.vectors.shape[0]
-
-
+        self._normalized_ratios = torch.as_tensor(
+            (1 - eigensys.min_value /
+             eigensys.values) / eigensys.values) / eigensys.vectors.shape[0]
 
     @property
     def beta(self) -> float:
@@ -87,7 +90,7 @@ def top_eigensystem(samples: torch.Tensor, q: int,
     n_sample = samples.shape[0]
     kernel_mat = kernel_fn(samples, samples)
     # Obtains eigensystem for the normalized kernel matrix.
-    eigensys = top_q_eig(kernel_mat / n_sample, q)
+    eigensys = eigh.top_q_eig(kernel_mat / n_sample, q)
 
     # Obtains an upper bound for ||k(x, \cdot)||.
     beta = max(torch.diag(kernel_mat))
