@@ -13,7 +13,7 @@ import eigenpro.utils.device as device
 class ShardedKernelMachine(km.KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
 
-  def __init__(self, kms: List[pkm.PreallocatedKernelMachine], device: device.Device ):
+  def __init__(self, kms: List[km.KernelMachine], device: device.Device ):
     self.device = device
     self.shard_kms = kms
     self.n_devices = len(kms)
