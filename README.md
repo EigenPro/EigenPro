@@ -44,7 +44,7 @@ In the experiments described below, `P` denotes the number of centers (model siz
 We used extracted features from the pretrained 'mobilenet-2' network available in the timm library. The benchmarks processed the full **5 million samples** of CIFAR5M with **d = 1280** for **one epoch** for two versions of EigenPro and FALKON [[4-6]](#References).
 All of these experiments were run on a **single A100** GPU. The maximum RAM we had access to was 1.2TB, which was not sufficient for FALKON with 1M centers.
 
-![Example Image](images/cifar5m.png)
+![Example Image](images/cifar5m.jpg)
 
 
 
