@@ -1,7 +1,7 @@
 # EigenPro
-EigenPro [[1-3]](#References) is a GPU-enabled fast and scalable solver for training kernel machines.
+EigenPro [[1-3]](#References) is a fast and scalable solver for training kernel machines.
 It applies a projected stochastic gradient method with dual preconditioning to enable major speed-ups.
-It is currently based on a PyTorch backend.
+It is currently based on a PyTorch backend, and is GPU enabled.
 
 ## Highlights
 - *Fast*: EigenPro is the fastest kernel method at large scale.
