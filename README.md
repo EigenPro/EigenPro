@@ -49,7 +49,7 @@ All of these experiments were run on a **single A100** GPU. The maximum RAM we h
 
 
 
-### 2. Libri speach Extracted Features on single GPU
+### 2. Libri speech Extracted Features on single GPU
 
 We used **10 million samples** with **d = 1024** for **one epoch** for two versions of EigenPro and FALKON. All of these experiments were run on a **single V100** GPU. The maximum RAM available for this experiment was 300GB, which was not sufficient for FALKON with more than 128K centers. The features are extracted using an acoustic model (a VGG+BLSTM architecture in [[7]](#References)) to align the length of audio and text.
 
