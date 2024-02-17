@@ -33,7 +33,7 @@ class KernelEigenSystem(EigenSystem):
         # Overwrites base class `_vectors`
         self._vectors = torch.as_tensor(eigensys.vectors)#/np.sqrt(eigensys.vectors.shape[0])
 
-        self._normalized_ratios = torch.Tensor(
+        self._normalized_ratios = torch.as_tensor(
             (1 - eigensys.min_value / eigensys.values) / eigensys.values) /eigensys.vectors.shape[0]
 
         # self._normalized_ratios= self._normalized_ratios.to(type)

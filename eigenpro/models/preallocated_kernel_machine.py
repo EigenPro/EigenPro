@@ -103,17 +103,24 @@ class PreallocatedKernelMachine(KernelMachine):
       centers = self._centers[:self.used_capacity, :]
       weights = self._weights[:self.used_capacity, :]
 
-    #kernel_mat = self._kernel_fn(x, centers)
+
+    import time
+    t_kerenl_start = time.time()
+
+    # kernel_mat = self._kernel_fn(x, centers)
     kernel_mat = self._kernel_fn(x, centers[:self.original_size])
+
+    # print(f'kerenl evaluation time:{time.time()-t_kerenl_start}')
 
     if projection:
       predictions = kernel_mat @ self.weights_project
     else:
       poriginal = kernel_mat[:, :self.original_size] @ weights[:self.original_size, :]
       if centers.shape[0] > self.original_size:
-        #prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
+
+        # prest = kernel_mat[:, self.original_size:] @ weights[self.original_size:, :]
         prest = KmV(
-            self._kernel_fn, x, 
+            self._kernel_fn, x,
             centers[self.original_size:],
             weights[self.original_size:],
             col_chunk_size=2**16

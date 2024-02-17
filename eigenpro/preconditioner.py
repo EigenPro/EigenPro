@@ -107,7 +107,7 @@ class Preconditioner:
         with ThreadPoolExecutor() as executor:
             outs = [executor.submit(KmV,self._kernel_fn, batch,self.centers.to(batch.device),
                                     DEq.to(batch.device),row_chunk_size = 2**16) for batch in batches]
-        return torch.cat([o.result().to(return_device) for o in outs])
+        return [o.result() for o in outs]#torch.cat([o.result().to(return_device) for o in outs])
 
 
 

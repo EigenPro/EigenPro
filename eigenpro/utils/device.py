@@ -47,7 +47,9 @@ class Device():
                            for i in range(torch.cuda.device_count())]
         else:
             device_list = [torch.device('cpu')]
+
+        n_devices = 1
         print(colored(f'Note: the current implementation will use all available GPUs.\n'
                       f'We will use the following device for this run:'
-                      f' ({device_list}) ','red'))
-        return Device(device_list)
+                      f' ({device_list[0:n_devices]}) ','red'))
+        return Device(device_list[0:n_devices])

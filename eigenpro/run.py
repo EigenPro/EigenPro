@@ -76,7 +76,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     model_preconditioner.change_type(dtype=dtype)
                    
     # kz_xs_evecs = data_preconditioner.eval_vec(model.centers).to(device_base).type(dtype)
-    kz_xs_evecs = data_preconditioner.eval_vec(model.centers,device_base).type(dtype)
+    kz_xs_evecs = data_preconditioner.eval_vec(model.centers,device_base) #.type(dtype)
 
     # data loader
     dataset = ArrayDataset(X, Y)
@@ -127,17 +127,24 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
                            })
 
     project_counter = 0
+
+    train_start_time = time.time()
     for epoch in range(epochs):
         epoch_progress = tqdm(enumerate(train_dataloader), total=len(train_dataloader),
                               desc=f"Epoch {epoch + 1}/{epochs}")
 
         for t, (x_batch,y_batch,id_batch) in epoch_progress:
-
+            # print(f'step:{t}')
+            t_step_start = time.time()
             optimizer.step(x_batch, y_batch, id_batch)
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
                 torch.cuda.empty_cache()
+            t_step_end = time.time()
 
+            # print(f'step time:{t_step_end-t_step_start}')
+            # if (t+1)%5==0:
+            #     exit()
             # if t%1 == 0:
             #     loss_test, accu_test = get_performance(model, x, y)
             #     # Print epoch summary using tabulate
@@ -154,16 +161,19 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
                 #     projection_loader = DataLoader(projection_dataset,
                 #                                    batch_size=model_batch_size, shuffle=True)
 
-                grad_accumulation_parts = torch.chunk(optimizer.grad_accumulation, len(device.devices), dim=0)
+                # grad_accumulation = 0
+                # for grad_acc in optimizer.grad_accumulation:
+                #     grad_accumulation +=grad_acc.to(device_base)
+                # grad_accumulation_parts = torch.chunk(grad_accumulation , len(device.devices), dim=0)
+                grad_accumulation_parts = optimizer.grad_accumulation
                 dataloaders = []
-
                 for ind_g, g in enumerate(device.devices):
                     # Get the respective part of model.centers and grad_accumulation
                     centers_part = model.centers[ind_g]
                     grad_accumulation_part = grad_accumulation_parts[ind_g]
 
                     # Move grad_accumulation_part to the respective GPU
-                    grad_accumulation_part = grad_accumulation_part.to(g)
+                    # grad_accumulation_part = grad_accumulation_part.to(g)
 
                     # Create the dataset with centers_part and the corresponding grad_accumulation_part
                     dataset = ArrayDataset(centers_part, grad_accumulation_part)
@@ -214,13 +224,15 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
-        loss_test, accu_test = get_performance(model, x, y)
-        # Print epoch summary using tabulate
-        epoch_summary = [
-            ["Test Loss", f"{loss_test:.10f}"],
-            ["Test Accuracy", f"{accu_test * 100:.2f}%"],
-        ]
-        print(tabulate(epoch_summary, headers=[f"Epoch {epoch + 1} Summary", "Value"], tablefmt="fancy_grid"))
+        # loss_test, accu_test = get_performance(model, x, y)
+        # # Print epoch summary using tabulate
+        # epoch_summary = [
+        #     ["Test Loss", f"{loss_test:.10f}"],
+        #     ["Test Accuracy", f"{accu_test * 100:.2f}%"],
+        # ]
+        # print(tabulate(epoch_summary, headers=[f"Epoch {epoch + 1} Summary", "Value"], tablefmt="fancy_grid"))
 
+    train_end_time = time.time()
 
+    print(f'total training time:{train_end_time-train_start_time}')
     return model

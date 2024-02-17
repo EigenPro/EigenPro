@@ -2,6 +2,8 @@
 import torch
 from .models.base import KernelMachine
 from .preconditioner import Preconditioner
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 
 class EigenPro:
@@ -38,7 +40,8 @@ class EigenPro:
         self.model_preconditioner = model_preconditioner
 
         if accumulated_gradients:
-            self.grad_accumulation = 0
+            self.grad_accumulation = [torch.tensor(0,dtype=self.dtype).to(self.model.device.devices[i])
+                                      for i in range(len(self.model.device.devices)) ]
             if kz_xs_evecs == None:
                 raise NotImplementedError
             else:
@@ -76,8 +79,15 @@ class EigenPro:
             projection (bool): projection mode
         """
 
-
+        # t_forward_start = time.time()
         batch_p = self.model.forward(batch_x,projection=projection)
+
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
+
+        # print(f'forward time:{time.time()-t_forward_start}')
+
         base_device = batch_p.device
         grad = batch_p - batch_y.to(self.dtype).to(base_device) ## gradient in function space K(bathc,.) (f-y)
         batch_size = batch_x.shape[0]
@@ -99,19 +109,48 @@ class EigenPro:
         else:
             k_centers_batch_all = self.model.lru.get('k_centers_batch')
             self.model.lru.cache.clear()
-            kgrads = []
-            for k in k_centers_batch_all:
-                kgrads.append((k @ grad.to(k.device).to(k.dtype)).to(base_device))
-            k_centers_batch_grad = torch.cat(kgrads)  ##  K(bathc,Z) (f-y)
 
-            self.grad_accumulation = self.grad_accumulation - lr*\
-                                     ( k_centers_batch_grad -
-                                       (self.k_centers_nystroms_mult_eigenvecs @
-                                        deltap) )
+            grads = self.model.device(grad, strategy="broadcast")  # of shape (batch_size,)
+            deltaps = self.model.device(deltap, strategy="broadcast")  # of shape (nystrom_size,)
+            with ThreadPoolExecutor() as executor:
+                kgrads = [
+                    executor.submit(
+                        torch.matmul,
+                        k_centers_batch_all[i],  # of shape (model_size/num_gpus, batch_size)
+                        grads[i],  # of shape (batch_size,)
+                    ) for i in range(len(self.model.device.devices))
+                ]
+                delta_grad = [
+                    executor.submit(
+                        torch.matmul,
+                        self.k_centers_nystroms_mult_eigenvecs[i],  # of shape (model_size/num_gpus, nystrom_size)
+                        deltaps[i],  # of shape (nystrom_size)
+                    ) for i in range(len(self.model.device.devices))
+                ]
+                # import ipdb
+                # ipdb.set_trace()
+                self.grad_accumulation = [
+                    executor.submit(
+                        torch.add,
+                        self.grad_accumulation[i],  # of shape (model_size/num_gpus,)
+                        -lr.item() * kgrads[i].result()
+                        + lr.item() * delta_grad[i].result(),  # of shape (model_size/num_gpus)
+                    ).result() for i in range(len(self.model.device.devices))
+                ]
+
+            # kgrads = []
+            # for k in k_centers_batch_all:
+            #     kgrads.append((k @ grad.to(k.device).to(k.dtype)).to(base_device))
+            # k_centers_batch_grad = torch.cat(kgrads)  ##  K(bathc,Z) (f-y)
+
+            # self.grad_accumulation = self.grad_accumulation - lr*\
+            #                          ( k_centers_batch_grad -
+            #                            (self.k_centers_nystroms_mult_eigenvecs @
+            #                             deltap) )
 
             self.model.add_centers(batch_x, -lr*grad)
             # print(f'used capacity:{self.model.shard_kms[0].used_capacity}')
-            del k_centers_batch_grad, kgrads, k_centers_batch_all,batch_y
+            del  kgrads, k_centers_batch_all,batch_y
 
 
 
@@ -131,5 +170,6 @@ class EigenPro:
         return:
             None
         """
-        self.grad_accumulation = 0
+        self.grad_accumulation = [torch.tensor(0,dtype=self.dtype).to(self.model.device.devices[i])
+                                      for i in range(len(self.model.device.devices)) ]
 

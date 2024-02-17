@@ -6,6 +6,7 @@ from ..utils.cache import LRUCache
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import ipdb
+import time
 
 class ShardedKernelMachine(KernelMachine):
   """Kernel machine that shards its computation across multiple devices."""
@@ -46,12 +47,22 @@ class ShardedKernelMachine(KernelMachine):
         torch.Tensor: tensor of shape [n_samples, n_outputs].
     """
 
+    t_forward_m_start = time.time()
+
     x_broadcast = self.device(x)
     with ThreadPoolExecutor() as executor:
       predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[i],
                                      projection=projection,train=train)
                      for i in range(self.n_devices)]
     results = [k.result() for k in predictions]
+
+    # ipdb.set_trace()
+
+    if torch.cuda.is_available():
+      torch.cuda.synchronize()
+      torch.cuda.empty_cache()
+
+    # print(f'forward multi gpu time:{time.time() - t_forward_m_start}')
 
     p_all = 0
     k_centers_batch_all = []

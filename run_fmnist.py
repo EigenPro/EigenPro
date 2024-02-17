@@ -15,10 +15,18 @@ import time
 
 args = parse_cmd_args()
 
-X_train, X_test, Y_train, Y_test = load_fmnist(os.environ["DATA_DIR"], args.n_train, args.n_test)
+data_dir = '/scratch/bbjr/abedsol1/cifar5m/'
+# X_train, X_test, Y_train, Y_test = load_fmnist(
+#     data_dir , args.n_train, args.n_test)
+X_train, Y_train = torch.load(data_dir + 'X_train_2M') / 255.0, one_hot(torch.load(data_dir + 'Y_train_2M')).float()
+X_test, Y_test = torch.load(data_dir + 'X_test_10K') / 255.0, one_hot(torch.load(data_dir + 'Y_test_10K')).float()
+
+train_indices = np.random.choice(1_000_000,args.n_train,replace=False)
+X_train = X_train[train_indices]
+Y_train = Y_train[train_indices]
 
 # Eigenpro configuration
-dtype = torch.float16
+dtype = torch.float32
 kernel_fn = lambda x, z: laplacian(x, z, bandwidth=20.)
 # Note: if you want to run on CPU, change `dtype` to `torch.float32` since
 # PyTorch does not support half-precision multiplication on CPU
@@ -36,12 +44,18 @@ else:
     centers_set_indices = np.random.choice(X_train.shape[0], args.model_size, replace=False)
     Z = X_train[centers_set_indices,:]
 
+
+
+
 model = create_kernel_model(Z, Y_train.shape[-1], kernel_fn, device, dtype=dtype, tmp_centers_coeff=2)
 
+
+
+
 model = run_eigenpro(model, X_train, Y_train, X_test, Y_test, device, dtype=dtype, kernel=kernel_fn,
-                     s_data=args.s_data, s_model=args.s_model, 
+                     s_data=args.s_data, s_model=args.s_model,
                      q_data=args.q_data, q_model=args.q_model,
-                     wandb=None, epochs=args.epochs,accumulated_gradients=accumulated_gradients)
+                     wandb=None, epochs=1,accumulated_gradients=accumulated_gradients)
 
 
 end = time.time()
