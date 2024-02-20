@@ -64,19 +64,19 @@ class ShardedKernelMachine(KernelMachine):
 
     # print(f'forward multi gpu time:{time.time() - t_forward_m_start}')
 
-    p_all = 0
-    k_centers_batch_all = []
-    for i,r in enumerate(results):
-      p_all =  p_all + r.to(self.device.device_base)
-      k_centers_batch_all.append(self.shard_kms[i].lru.get('k_centers_batch'))
-      self.shard_kms[i].lru.cache.clear()
-      torch.cuda.empty_cache()
-      del r
+    p_all = torch.cuda.comm.reduce_add(results,self.device.device_base)
+    # k_centers_batch_all = []
+    # for i,r in enumerate(results):
+    #   p_all =  p_all + r.to(self.device.device_base)
+    #   k_centers_batch_all.append(self.shard_kms[i].lru.get('k_centers_batch'))
+    #   self.shard_kms[i].lru.cache.clear()
+    #   torch.cuda.empty_cache()
+    #   del r
 
-    if train:
-      self.lru.put('k_centers_batch',k_centers_batch_all )
+    # if train:
+    #   self.lru.put('k_centers_batch',k_centers_batch_all )
 
-    del x_broadcast,k_centers_batch_all,results,x
+    del x_broadcast,results,x #k_centers_batch_all
     torch.cuda.empty_cache()
 
 

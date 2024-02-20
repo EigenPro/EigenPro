@@ -23,7 +23,7 @@ class Preconditioner:
     def __init__(self,
                  kernel_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
                  centers: torch.Tensor,
-                 top_q_eig: int,
+                 top_q_eig: int
                  ) -> None:
         """Initializes the Preconditioner."""
         self._kernel_fn = kernel_fn
@@ -31,6 +31,9 @@ class Preconditioner:
         self._eigensys = top_eigensystem(centers, top_q_eig, kernel_fn)
         self._centers = centers
         self.lru = LRUCache()
+
+
+
 
     @property
     def eigensys(self) -> torch.Tensor:
@@ -59,7 +62,6 @@ class Preconditioner:
         """Computes and returns the scaled learning rate."""
         return 2 / batch_size * self.learning_rate(batch_size)
 
-
     def delta(self, batch_x: torch.Tensor, grad: torch.Tensor) -> torch.Tensor:
         """Computes weight delta for preconditioner centers.
         Args:
@@ -80,11 +82,11 @@ class Preconditioner:
         normalized_ratios = self._eigensys.normalized_ratios.to(device)
 
         vtkg = eigenvectors.T @ kg
-        vdvtkg = (normalized_ratios*eigenvectors ) @ vtkg
+        vdvtkg = (normalized_ratios * eigenvectors) @ vtkg
 
         del eigenvectors, normalized_ratios
 
-        return vtkg,vdvtkg
+        return vtkg, vdvtkg
 
     def eval_vec(self,batches,return_device = 'cpu'):
         """Computes K(X_s,batch)@(D*E) which is a part of correction term

@@ -48,7 +48,7 @@ class Device():
         else:
             device_list = [torch.device('cpu')]
 
-        n_devices = 1
+        n_devices = 4
         print(colored(f'Note: the current implementation will use all available GPUs.\n'
                       f'We will use the following device for this run:'
                       f' ({device_list[0:n_devices]}) ','red'))

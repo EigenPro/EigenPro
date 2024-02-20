@@ -107,7 +107,7 @@ class EigenPro:
             self.model.update_projection(batch_ids, -lr *grad, gpu_index=gpu_ind)
 
         else:
-            k_centers_batch_all = self.model.lru.get('k_centers_batch')
+            k_centers_batch_all = [m.lru.get('k_centers_batch') for m in self.model.shard_kms ]
             self.model.lru.cache.clear()
 
             grads = self.model.device(grad, strategy="broadcast")  # of shape (batch_size,)

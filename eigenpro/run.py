@@ -186,6 +186,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
                     # Store the DataLoader
                     dataloaders.append(loader)
 
+                start_projection = time.time()
                 for _ in range(1):
 #<<<<<<< HEAD
 #                    for z_batch, grad_batch, id_batch in tqdm(
@@ -212,6 +213,7 @@ def run_eigenpro(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
                 #     print(f'used capacity:{m.used_capacity}')
                 if torch.cuda.is_available():
                     torch.cuda.synchronize()
+                print(f'projection time:{time.time() - start_projection}')
 
 
             if wandb is not None:
