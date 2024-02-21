@@ -44,12 +44,7 @@ In the experiments described below, `P` denotes the number of centers (model siz
 We used extracted features from the pretrained 'mobilenet-2' network available in the timm library. The benchmarks processed the full **5 million samples** of CIFAR5M with **d = 1280** for **one epoch** for two versions of EigenPro and FALKON [[4-6]](#References).
 All of these experiments were run on a **single A100** GPU. The maximum RAM we had access to was 1.2TB, which was not sufficient for FALKON with 1M centers.
 
-| Method      | P = 64k        |        | P = 128k       |        | P = 256k       |        | P = 512k       |        | P = 1024k      |         |
-|-------------|----------------|--------|----------------|--------|----------------|--------|----------------|--------|----------------|---------|
-|             | Accuracy          | Time   | Accuracy          | Time   | Accuracy          | Time   | Accuracy          | Time   | Accuracy          | Time    |
-| **EigenPro (latest)** | 87.99%         | 271s   | 88.25%         | 309s   | 88.43%         | 406s   | 88.58%         | 695s   | 88.74%         | 1268s   |
-| EigenPro 3.0 [[1]](#References) | 88.33%         | 1359s  | 88.42%         | 3014s  | 88.61%         | 7663s  | 88.56%         | 21845s | > 24hrs        | -       |
-| FALKON [[4-6]](#References) | 86.09%         | 184s   | 86.55%         | 537s   | 86.73%         | 2308s  | 86.71%         | 14433s | out of memory  | -       |
+![Example Image](images/cifar5m.jpg)
 
 
 
@@ -57,12 +52,7 @@ All of these experiments were run on a **single A100** GPU. The maximum RAM we h
 
 We used **10 million samples** with **d = 1024** for **one epoch** for two versions of EigenPro and FALKON. All of these experiments were run on a **single V100** GPU. The maximum RAM available for this experiment was 300GB, which was not sufficient for FALKON with more than 128K centers. The features are extracted using an acoustic model (a VGG+BLSTM architecture in [[7]](#References)) to align the length of audio and text.
 
-| Method      | P = 64k         |            | P = 128k        |            | P = 256k        |            | P = 512k        |            | P = 1024k       |            |
-|-------------|-----------------|------------|-----------------|------------|-----------------|------------|-----------------|------------|-----------------|------------|
-|             | Accuracy          | Time       | Accuracy           | Time       |Accuracy           | Time       | Accuracy           | Time       | Accuracy          | Time       |
-| **EigenPro (latest)**  | 86.84%          | 980s       | 87.80%          | 1157s      | 88.33%          | 1440s      | 88.89%          | 2185s      | 89.49%          | 4229s      |
-| EigenPro 3.0 [[1]](#References) | 85.43%          | 8697s      | 84.75%          | 20492s     | > 18hrs         | -          | > 24hrs         | -          | > 24hrs         | -          |
-| FALKON [[4-6]](#References)      | 81.04%          | 535s       | 82.30%          | 1290s      | out of mem   | -          | out of mem   | -          | out of mem   | -          |
+![Example Image](images/librispeech.jpg)
 
 ---
 
