@@ -118,10 +118,11 @@ class EigenPro:
 
 
 
-        self.model.update_by_index(torch.tensor(
-            list(range(self.model_preconditioner._centers.shape[0]))),
-                                   lr*delta, nystrom_update=True,
-                                   projection=projection)
+        self.model.update_by_index(
+            torch.arange(
+                self.model_preconditioner._centers.shape[0]),
+            lr*delta, nystrom_update=True,
+            projection=projection)
 
         del grad, batch_x, batch_p, deltap, delta
         if torch.cuda.is_available():

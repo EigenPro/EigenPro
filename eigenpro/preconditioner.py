@@ -4,11 +4,12 @@
 from typing import Callable
 
 import torch
+import math
 
 import eigenpro.utils.cache as cache
 import eigenpro.utils.keigh as keigh
 import eigenpro.utils.fmm as fmm
-
+from functools import cache
 
 class Preconditioner:
     """Class for preconditioning based on a given kernel function and centers.
@@ -32,11 +33,13 @@ class Preconditioner:
         self._eigensys = keigh.top_eigensystem(centers, top_q_eig, kernel_fn)
         self._centers = centers
         self.lru = cache.LRUCache()
+        self.normalized_eigenvectors = self._eigensys.vectors * math.sqrt(self._eigensys.normalized_ratios)
 
     @property
     def eigensys(self) -> torch.Tensor:
         """Returns eigensys of preconditioner."""
         return self._eigensys
+
     @property
     def centers(self) -> torch.Tensor:
         """Returns centers for constructing the preconditioner."""
@@ -56,6 +59,7 @@ class Preconditioner:
             return batch_size / (self._eigensys.beta +
                                  (batch_size - 1) * self._eigensys.min_value)
 
+    @cache
     def scaled_learning_rate(self, batch_size: int) -> float:
         """Computes and returns the scaled learning rate."""
         return 2 / batch_size * self.learning_rate(batch_size)
@@ -88,7 +92,7 @@ class Preconditioner:
 
         return vtkg, vdvtkg
 
-    def eval_vec(self,batch):
+    def eval_vec(self, batch):
         """Computes K(X_s,batch)@(D*E) which is a part of correction term
         Args:
             batch (torch.Tensor): Of shape `[, n_features]`.
