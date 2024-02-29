@@ -53,5 +53,12 @@ class TestPreconditioner(unittest.TestCase):
         torch.testing.assert_close(etksg, vtkg)
         torch.testing.assert_close(fftksg, vdvtkg)
 
+    def test_eval_vec(self):
+        batch = torch.randn(self.m, self.d)
+        torch.testing.assert_close(
+            self.kernel_fn(batch, self.nystrom_centers) @ (self.D*self.E), 
+            self.preconditioner.eval_vec(batch)
+        )
+
 if __name__ == "__main__":
     unittest.main()
