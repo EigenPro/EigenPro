@@ -86,7 +86,7 @@ class EigenPro:
 
         if projection:
             lr = self.model_preconditioner.scaled_learning_rate(batch_size)
-            _, delta = self.model_preconditioner.delta(
+            deltap, delta = self.model_preconditioner.delta(
                 batch_x.to(grad.device).to(self.dtype), grad)
         else:
             lr = self.data_preconditioner.scaled_learning_rate(batch_size)

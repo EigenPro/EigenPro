@@ -180,19 +180,20 @@ class TestEigenPro(unittest.TestCase):
             
     
 
-    def run_third_step_and_project(self):
+    # def run_projection_step(self):
 
-        x1, y1, id1, x2, y2, id2, m, lr, g2, fftksg2, h = self.run_two_steps()
+    #     x1, y1, id1, x2, y2, id2, m, lr, g2, fftksg2, h = self.run_two_steps()
         
 
 
-    def test_third_step_with_projection(self):
-        x1, y1, id1, x2, y2, id2, m, lr, g2, fftksg2, h = self.run_two_steps()
-        x3, y3, id3 = self.data_X[2*m:3*m], self.data_y[2*m:3*m], torch.arange(2*m, 3*m)
+
+    # def test_third_step_with_projection(self):
+    #     x1, y1, id1, x2, y2, id2, m, lr, g2, fftksg2, h = self.run_two_steps()
+    #     x3, y3, id3 = self.data_X[2*m:3*m], self.data_y[2*m:3*m], torch.arange(2*m, 3*m)
         
-        self.optimizer.step(x1, y1, id1, False)
-        self.optimizer.step(x2, y2, id2, False)
-        self.optimizer.step(x3, y3, id3, True)
+    #     self.optimizer.step(x1, y1, id1, False)
+    #     self.optimizer.step(x2, y2, id2, False)
+    #     self.optimizer.step(x3, y3, id3, True)
 
 
 

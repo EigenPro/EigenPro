@@ -7,7 +7,7 @@ import torch.utils.data as torch_data
 
 import eigenpro.data.array_dataset as array_dataset
 import eigenpro.kernels as kernels
-import eigenpro.preconditioner as pcd
+import eigenpro.preconditioners as pcd
 import eigenpro.optimizers as opt
 import eigenpro.utils.mapreduce as mapreduce
 import eigenpro.utils.metrics as metrics
