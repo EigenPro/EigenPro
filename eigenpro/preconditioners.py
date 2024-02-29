@@ -31,6 +31,7 @@ class Preconditioner:
         self._kernel_fn = kernel_fn
         self._eigensys = keigh.top_eigensystem(centers, top_q_eig, kernel_fn)
         self._centers = centers
+        self.size = centers.shape[0]
         self.lru = cache.LRUCache()
         self.normalized_eigenvectors = self._eigensys.vectors * self._eigensys.normalized_ratios.sqrt()
 
