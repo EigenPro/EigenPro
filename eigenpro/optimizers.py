@@ -41,7 +41,7 @@ class EigenPro:
         self.model_preconditioner = model_preconditioner
 
         if accumulated_gradients:
-            self.grad_accumulation = 0
+            self.grad_accumulation = torch.zeros(self.model.size, self.model.n_outputs, dtype=self.dtype)
             if kz_xs_evecs == None:
                 raise NotImplementedError
             else:
@@ -83,7 +83,6 @@ class EigenPro:
         # gradient in function space K(bathc,.) (f-y)
         grad = batch_p - batch_y.to(self.dtype).to(batch_p.device)
         batch_size = batch_x.shape[0]
-
 
         if projection:
             lr = self.model_preconditioner.scaled_learning_rate(batch_size)

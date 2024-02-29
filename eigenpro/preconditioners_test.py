@@ -20,15 +20,16 @@ class TestPreconditioner(unittest.TestCase):
         self.data_X = torch.randn(self.n, self.d)
         self.data_y = torch.randn(self.n, self.c)
         self.model_Z = torch.randn(self.p, self.d)
-        
+        self.nystrom_centers = self.data_X[:self.sd]
+
         self.preconditioner = pcd.Preconditioner(
             kernel_fn = self.kernel_fn,
-            centers = self.data_X[:self.sd],
+            centers = self.nystrom_centers,
             top_q_eig = self.qd
         )
 
         self.L, E = scipy.linalg.eigh(
-            self.kernel_fn(self.data_X[:self.sd], self.data_X[:self.sd]).numpy(),
+            self.kernel_fn(self.nystrom_centers, self.nystrom_centers).numpy(),
             subset_by_index=[self.sd-self.qd-1, self.sd-1]
         )
         self.D = torch.from_numpy(1/self.L[1:]*(1-self.L[0]/self.L[1:])).flip(0)
@@ -45,13 +46,12 @@ class TestPreconditioner(unittest.TestCase):
             self.data_X[:self.m], 
             grad
         )
-        ksm = self.kernel_fn(self.data_X[:self.sd], self.data_X[:self.m])
-        kg = ksm @  grad 
-        ekg = self.E.T @ kg
-        fkg = self.F.T @ kg
-        ftfkg = self.F @ fkg
-        torch.testing.assert_close(ekg, vtkg)
-        torch.testing.assert_close(ftfkg, vdvtkg)
+        ksg = self.kernel_fn(self.nystrom_centers, self.data_X[:self.m]) @  grad 
+        etksg = self.E.T @ ksg
+        ftksg = self.F.T @ ksg
+        fftksg = self.F @ ftksg
+        torch.testing.assert_close(etksg, vtkg)
+        torch.testing.assert_close(fftksg, vdvtkg)
 
 if __name__ == "__main__":
     unittest.main()
