@@ -146,7 +146,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
                 update_projection = torch.cat([k.weights_project.to(device_base) for k in model.shard_kms])
 
-                model.update_by_index(torch.tensor(list(range(p))), update_projection)
+                model.update_by_index(torch.arange(p), update_projection)
                 model.reset()
                 optimizer.reset()
                 if torch.cuda.is_available():
