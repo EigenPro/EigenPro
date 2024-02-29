@@ -64,7 +64,11 @@ class Preconditioner:
         return 2 / batch_size * self.learning_rate(batch_size)
 
 
-    def delta(self, batch_x: torch.Tensor, grad: torch.Tensor) -> torch.Tensor:
+    def delta(
+        self, 
+        batch_x: torch.Tensor, 
+        grad: torch.Tensor
+    ) -> torch.Tensor:
         """Computes weight delta for preconditioner centers.
         Args:
             batch_x (torch.Tensor): Of shape `[, n_features]`.

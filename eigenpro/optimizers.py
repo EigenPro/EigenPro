@@ -2,7 +2,7 @@
 import torch
 
 import eigenpro.models.kernel_machine as km
-import eigenpro.preconditioner as pcd
+import eigenpro.preconditioners as pcd
 
 
 class EigenPro:
@@ -31,7 +31,7 @@ class EigenPro:
                  model_preconditioner: pcd.Preconditioner,
                  kz_xs_evecs:torch.tensor = None,
                  dtype=torch.float32,
-                 accumulated_gradients:bool = False,) -> None:
+                 accumulated_gradients:bool = True) -> None:
         """Initialize the EigenPro optimizer."""
 
         self.dtype = dtype
