@@ -86,7 +86,7 @@ class EigenPro:
 
         if projection:
             lr = self.model_preconditioner.scaled_learning_rate(batch_size)
-            deltap, delta = self.model_preconditioner.delta(
+            _, delta = self.model_preconditioner.delta(
                 batch_x.to(grad.device).to(self.dtype), grad)
         else:
             lr = self.data_preconditioner.scaled_learning_rate(batch_size)
@@ -96,6 +96,11 @@ class EigenPro:
         if self.grad_accumulation is None or projection:
             self.model.update_by_index(batch_ids, -lr*grad,
                                        projection=projection)
+            self.model.update_by_index(
+                torch.arange(self.model_preconditioner.size),
+                lr*delta, nystrom_update=True,
+                projection=True
+            )
         else:
             k_centers_batch_all = self.model.lru.get('k_centers_batch')
             self.model.lru.cache.clear()
@@ -117,11 +122,11 @@ class EigenPro:
 
 
 
-        self.model.update_by_index(
-            torch.arange(self.model_preconditioner.size),
-            lr*delta, nystrom_update=True,
-            projection=projection
-        )
+            self.model.update_by_index(
+                torch.arange(self.data_preconditioner.size),
+                lr*delta, nystrom_update=True,
+                projection=False
+            )
 
         del grad, batch_x, batch_p, deltap, delta
         if torch.cuda.is_available():
