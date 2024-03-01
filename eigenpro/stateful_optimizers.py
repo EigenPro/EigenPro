@@ -1,8 +1,12 @@
 """Optimizer class and utility functions for EigenPro iteration."""
 import torch
+import torch.utils.data as torch_data
 
 import eigenpro.models.kernel_machine as km
+import eigenpro.models.stateful_preallocated_kernel_machine as pkm
 import eigenpro.preconditioners as pcd
+import eigenpro.data.array_dataset as array_dataset
+
 
 
 class EigenPro:
@@ -43,17 +47,19 @@ class EigenPro:
         
         self.temporary_model_size = int(model.size*tmp_centers_coeff)
 
-        self.temporary_model = km.KernelMachine(
-            model.kernel_fn, model.n_outputs, self.temporary_model_size)
+        self.temporary_model = pkm.PreallocatedKernelMachine(
+            model.kernel_fn, model.n_inputs, model.n_outputs, self.temporary_model_size)
 
         self.nystrom_model = km.KernelMachine(
-            model.kernel_fn, model.n_outputs, self.data_preconditioner.size)
+            model.kernel_fn, model.n_inputs, model.n_outputs, self.data_preconditioner.size)
+
         self.nystrom_model.centers = self.data_preconditioner.centers
         
         self.k_centers_nystroms_mult_eigenvecs = self.data_preconditioner.eval_vec(self.model.centers).to(self.dtype)
 
         self.reset()
 
+        self.projection_dataloader = None
 
 
     @property
@@ -103,9 +109,7 @@ class EigenPro:
                                  ( self.model.backward(grad) -
                                    (self.k_centers_nystroms_mult_eigenvecs @
                                     deltap) )
-
         self.temporary_model.add_centers(batch_x, -lr*grad)
-        # print(f'used capacity:{self.model.shard_kms[0].used_capacity}')
 
         del batch_y
 
@@ -118,31 +122,38 @@ class EigenPro:
             torch.cuda.empty_cache()
 
 
-    def project(self,
-             gz: torch.Tensor,
-             epochs: int = 1) -> None:
-        """Performs a projection.
+    def create_projection_dataloader(gz: torch.Tensor, batch_size: int = None):
+        if self.projection_dataloader is None:
+            projection_dataset = array_dataset.ArrayDataset(self.model.centers, self.grad_accumulation)
+            self.projection_dataloader = torch_data.DataLoader(
+                projection_dataset, batch_size=model_batch_size, shuffle=True)
+        else:
+            self.projection_dataloader
+
+
+    def project(self, epochs: int = 1, batch_size) -> None:
+        """Performs a projection using EigenPro2.
         """
+        self.model.train()
+        weights_before_projection = self.model.weights
+        model_nystrom_ids = torch.arange(self.model_preconditioner.size)
+        for _ in range(epochs):
+            for z_batch, grad_batch, batch_ids in tqdm(
+                    projection_loader, 
+                    total=len(projection_loader), 
+                    leave=False,
+                    desc="Projection"
+                ):
+                lr = self.model_preconditioner.scaled_learning_rate(len(batch_ids))
 
-        batch_p = self.model.forward(batch_x,projection=projection)
-        # gradient in function space K(bathc,.) (f-y)
-        grad = batch_p - batch_y.to(self.dtype).to(batch_p.device)
-        batch_size = batch_x.shape[0]
+                gm = self.model(z_batch) - grad_batch
+                self.model.update_weights_by_index(batch_ids, -lr*gm)
 
-        lr = self.model_preconditioner.scaled_learning_rate(batch_size)
-        deltap, delta = self.model_preconditioner.delta(
-            batch_x.to(grad.device).to(self.dtype), grad)
+                h = self._kmat_batch_centers_cached[:, model_nystrom_ids].T @ gm
+                fth = self.model_preconditioner.normalized_eigenvectors.T @ h
+                ffth = self.model_preconditioner.normalized_eigenvectors @ fth
+                self.model.update_weights_by_index(model_nystrom_ids, lr*ftfh)
 
-        if self.grad_accumulation is None or projection:
-            self.model.update_by_index(batch_ids, -lr*grad,
-                                       projection=projection)
-            self.model.update_by_index(
-                torch.arange(self.model_preconditioner.size),
-                lr*delta, nystrom_update=True,
-                projection=True
-            )
-
-        del grad, batch_x, batch_p, deltap, delta
         if torch.cuda.is_available():
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
@@ -156,8 +167,10 @@ class EigenPro:
         """
         self.grad_accumulation = torch.zeros(self.model.size, self.model.n_outputs, dtype=self.dtype)
 
-        self.temporary_model.centers = torch.zeros(0, self.model.centers.shape[1], dtype=self.dtype)
-        self.temporary_model.weights = torch.zeros(0, self.model.n_outputs, dtype=self.dtype)
+        self.temporary_model.centers = torch.zeros(
+            self.temporary_model_size, self.model.n_inputs, dtype=self.dtype, device=self.temporary_model.device)
+        self.temporary_model.weights = torch.zeros(
+            self.temporary_model_size, self.model.n_outputs, dtype=self.dtype, device=self.temporary_model.device)
         
         self.nystrom_model.weights = torch.zeros(self.data_preconditioner.size, self.model.n_outputs, dtype=self.dtype)
 

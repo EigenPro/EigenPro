@@ -30,11 +30,13 @@ class TestEigenPro(unittest.TestCase):
 
         self.model = km.KernelMachine(
             kernel_fn = self.kernel_fn,
+            n_inputs = self.d,
             n_outputs = self.c,
             size = self.p
         )
         self.model.centers = self.model_Z
         self.model.weights = self.model_W
+        self.model.train()
         self.temporary_centers = torch.zeros(0, self.d, dtype=self.dtype)
         self.temporary_weights = torch.zeros(0, self.c, dtype=self.dtype)
         self.nystrom_centers = self.data_X[:self.sd]
@@ -111,7 +113,8 @@ class TestEigenPro(unittest.TestCase):
             
     
 
-    # def run_projection_step(self):
+    def run_projection_step(self):
+        
 
     #     x1, y1, id1, x2, y2, id2, m, lr, g2, fftksg2, h = self.run_two_steps()
         
