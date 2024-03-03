@@ -26,11 +26,13 @@ class Preconditioner:
                                      torch.Tensor],
                  centers: torch.Tensor,
                  top_q_eig: int,
-                 ) -> None:
+                 center_ids: torch.Tensor = None,
+                ) -> None:
         """Initializes the Preconditioner."""
         self._kernel_fn = kernel_fn
         self._eigensys = keigh.top_eigensystem(centers, top_q_eig, kernel_fn)
         self._centers = centers
+        self._center_ids = center_ids
         self.size = centers.shape[0]
         self.lru = cache.LRUCache()
         self.normalized_eigenvectors = self._eigensys.vectors * self._eigensys.normalized_ratios.sqrt()
@@ -39,6 +41,11 @@ class Preconditioner:
     def eigensys(self) -> torch.Tensor:
         """Returns eigensys of preconditioner."""
         return self._eigensys
+
+    @property
+    def center_ids(self) -> torch.Tensor:
+        """Returns centers for constructing the preconditioner."""
+        return self._center_ids
 
     @property
     def centers(self) -> torch.Tensor:

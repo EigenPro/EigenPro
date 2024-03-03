@@ -7,15 +7,15 @@ import torch
 
 import eigenpro.data.utils as data_utils
 import eigenpro.kernels as kernels
-import eigenpro.models.sharded_kernel_machine as skm
-import eigenpro.solver as solver
+import eigenpro.models.kernel_machine as km
+from eigenpro.stateful_solver.solver_fit import fit
 import eigenpro.utils.device as dev
 
 
 
 def main():
-    n, n_test, p, d, c = 1024, 128, 512, 16, 8
-    epochs = 2
+    n, n_test, p, d, c = 16384, 128, 4096*3, 16, 8
+    epochs = 4
     s_data, s_model, q_data, q_model = 128, 64, 16, 8
 
     X_train = torch.randn(n, d)
@@ -40,12 +40,14 @@ def main():
     model.centers = Z
     model.train()
 
-    model = solver.fit(model, X_train, Y_train, X_test, Y_test, device,
-                       dtype=dtype, kernel=kernel_fn,
-                       s_data=s_data, s_model=s_model,
-                       q_data=q_data, q_model=q_model,
-                       wandb=None, epochs=epochs,
-                       accumulated_gradients=True)
+    model = fit(
+        model, 
+        X_train, Y_train, X_test, Y_test, device,
+        dtype=dtype, kernel=kernel_fn,
+        s_data=s_data, s_model=s_model,
+        q_data=q_data, q_model=q_model,
+        wandb=None, epochs=epochs,
+    )
 
 if __name__ == '__main__':
     # Call freeze_support() at the very beginning of the

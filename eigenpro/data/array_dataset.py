@@ -11,9 +11,9 @@ class ArrayDataset(torch_data.Dataset):
             "Data_x and Data_y must have the same length"
 
         if isinstance(data_x, np.ndarray):
-            data_x = torch.tensor(data_x, dtype=torch.float32)
+            data_x = torch.from_numpy(data_x, dtype=torch.float32)
         if isinstance(data_y, np.ndarray):
-            data_y = torch.tensor(data_y, dtype=torch.float32)
+            data_y = torch.from_numpy(data_y, dtype=torch.float32)
 
         self.data_x = data_x
         self.data_y = data_y
