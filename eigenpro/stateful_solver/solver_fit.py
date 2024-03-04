@@ -13,7 +13,7 @@ import eigenpro.utils.mapreduce as mapreduce
 import eigenpro.utils.metrics as metrics
 import eigenpro.stateful_solver
 
-def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
+def fit(model, X, Y, x=None, y=None, device=None, dtype=torch.float32, kernel=None,
         data_preconditioner_size=3_000, data_preconditioner_level=150, 
         model_preconditioner_size=3_000, model_preconditioner_level=150, 
         tmp_centers_coeff=2, wandb=None, T=None, epochs=1,
@@ -109,14 +109,16 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
     eigenpro_solver.fit(train_dataloader, epochs)
 
-    model.eval()
-    loss_test, accu_test = metrics.get_performance(model, x, y)
-    # Print epoch summary using tabulate
-    epoch_summary = [
-        ["Test Loss", f"{loss_test:.10f}"],
-        ["Test Accuracy", f"{accu_test * 100:.2f}%"],
-    ]
-    print(tabulate(epoch_summary, headers=[f"Epoch {epochs} Summary", "Value"], tablefmt="fancy_grid"))
+    # calculate test error if test data provided
+    if (x is not None) and (y is not None):
+        
+        loss_test, accu_test = metrics.get_performance(model, x, y)
+        # Print epoch summary using tabulate
+        epoch_summary = [
+            ["Test Loss", f"{loss_test:.10f}"],
+            ["Test Accuracy", f"{accu_test * 100:.2f}%"],
+        ]
+        print(tabulate(epoch_summary, headers=[f"Epoch {epochs} Summary", "Value"], tablefmt="fancy_grid"))
 
 
     return model

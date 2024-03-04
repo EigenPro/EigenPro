@@ -3,7 +3,6 @@ import torch
 import torch.utils.data as torch_data
 
 import eigenpro.models.kernel_machine as km
-import eigenpro.models.stateful_preallocated_kernel_machine as pkm
 import eigenpro.preconditioners as pcd
 import eigenpro.data.array_dataset as array_dataset
 import eigenpro.stateful_solver.base as base 
@@ -31,7 +30,7 @@ class EigenProSolver(base.BaseSolver):
         self.iterator = iterator.EigenProIterator(
             model = self.model, 
             preconditioner = data_preconditioner,
-            temporary_model_size = int((tmp_centers_coeff-1)*model.size),
+            state_max_size = int((tmp_centers_coeff-1)*model.size),
             dtype = self.dtype,)
         
         self.projector = projector.EigenProProjector(
@@ -58,8 +57,8 @@ class EigenProSolver(base.BaseSolver):
                 # run projection when more temporary centers cannot be added or at the end of last epoch
                 if ( 
                     ( # used_capacity \in (temp_model_size - batch_size, temp_model_size]
-                        (self.iterator.temporary_model.used_capacity <= self.iterator.temporary_model_size)
-                        and (self.iterator.temporary_model.used_capacity > self.iterator.temporary_model_size - len(y_batch))
+                        (self.iterator.latent_model.used_capacity <= self.iterator.state_max_size)
+                        and (self.iterator.latent_model.used_capacity > self.iterator.state_max_size - len(y_batch))
                     ) 
                     or 
                     ( # last batch of last epoch
@@ -83,4 +82,5 @@ class EigenProSolver(base.BaseSolver):
                     # self.model.eval()
                     # self.iterator.reset_gradient()
                     # self.model.train()
+        self.model.eval()
 

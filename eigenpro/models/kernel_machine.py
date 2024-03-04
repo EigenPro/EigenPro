@@ -18,6 +18,7 @@ class KernelMachine:
                  dtype: torch.dtype = torch.float32,
                  weights: torch.Tensor = None,
                  centers: torch.Tensor = None,
+                 device = None,
                 ):
         self._kernel_fn = kernel_fn
         self._n_inputs = n_inputs
@@ -26,6 +27,8 @@ class KernelMachine:
         self._train = False
         self._weights = weights if weights is not None else torch.zeros(size, n_outputs, dtype=dtype)
         self._centers = centers if centers is not None else torch.zeros(size, n_inputs, dtype=dtype)
+        self.device = device
+        self.dtype = dtype
 
     def train(self):
         self._train = True
