@@ -14,7 +14,8 @@ import eigenpro.utils.metrics as metrics
 import eigenpro.stateful_solver
 
 def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
-        s_data=3_000, s_model=3_000, q_data=150, q_model=150,
+        data_preconditioner_size=3_000, data_preconditioner_level=150, 
+        model_preconditioner_size=3_000, model_preconditioner_level=150, 
         tmp_centers_coeff=2, wandb=None, T=None, epochs=1,
         accumulated_gradients=True):
     """Fit a kernel model using EigenPro method.
@@ -45,33 +46,25 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     """
 
 
-    p = model.size 
-    n = X.shape[0]
-    d_out = Y.shape[-1]
     device_base = device.device_base
     if kernel is None:
         kernel_fn = lambda x, z: kernels.laplacian(x, z, bandwidth= 20.0)
     else:
         kernel_fn = kernel
 
-
-
     # preconditioner
-    nys_model_ids = np.random.choice(model.size, s_model, replace=False)
+    nys_model_ids = np.random.choice(model.size, model_preconditioner_size, replace=False)
     nys_model = model.centers[nys_model_ids] 
 
-    nys_data_ids = np.random.choice(X.shape[0], s_data, replace=False)
+    nys_data_ids = np.random.choice(len(X), data_preconditioner_size, replace=False)
     nys_data = X[nys_data_ids, :].to(device_base)
 
-    data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, q_data)
-    model_preconditioner = pcd.Preconditioner(kernel_fn, nys_model, q_model, nys_model_ids)
+    data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, data_preconditioner_level)
+    model_preconditioner = pcd.Preconditioner(kernel_fn, nys_model, model_preconditioner_level, nys_model_ids)
                    
     data_preconditioner.change_type(dtype=dtype)
     model_preconditioner.change_type(dtype=dtype)
                    
-    # kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
-
-
     # data loader
     dataset = array_dataset.ArrayDataset(X, Y)
     data_batch_size = min(8192, data_preconditioner.critical_batch_size)
@@ -88,7 +81,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
     # projection frequency
     if T is None:
-        T = ((tmp_centers_coeff-1)*p-s_data)//data_preconditioner.critical_batch_size    #2
+        T = ((tmp_centers_coeff-1)*model.size)//data_preconditioner.critical_batch_size    #2
 
     # configuration summary
     data = [
@@ -98,10 +91,10 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         [colored("size of model", 'blue'), model.size],
         [colored("ambient dimension", 'blue'), X.shape[1]],
         [colored("output dimension", 'blue'), Y.shape[1]],
-        [colored("size of data preconditioner", 'yellow'), s_data],
-        [colored("level of data preconditioner", 'yellow'), q_data],
-        [colored("size of model preconditioner", 'yellow'), s_model],
-        [colored("level of model preconditioner", 'yellow'), q_model],
+        [colored("size of data preconditioner", 'yellow'), data_preconditioner_size],
+        [colored("level of data preconditioner", 'yellow'), data_preconditioner_level],
+        [colored("size of model preconditioner", 'yellow'), model_preconditioner_size],
+        [colored("level of model preconditioner", 'yellow'), model_preconditioner_level],
         [colored("critical batch size (projection)",'red'), model_preconditioner.critical_batch_size],
         [colored("batch size (projection)", 'red'), model_batch_size],
         [colored("scaled learning rate",'red'),
@@ -114,19 +107,9 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     # Print the table
     print(table)
 
-    # if wandb is not None:
-    #     wandb.config.update({f'Project Frequency':f'{T}',
-    #                        f'batch_size':f'{data_batch_size}',
-    #                        f'number of training samples': f'{n}',
-    #                        f'number of centers': f'{p}',
-    #                        f's_data':f'{s_data}',
-    #                        f'q_data': f'{q_data}',
-    #                        f's_model': f'{s_model}',
-    #                        f'q_model': f'{q_model}',
-    #                        })
-
     eigenpro_solver.fit(train_dataloader, epochs)
 
+    model.eval()
     loss_test, accu_test = metrics.get_performance(model, x, y)
     # Print epoch summary using tabulate
     epoch_summary = [

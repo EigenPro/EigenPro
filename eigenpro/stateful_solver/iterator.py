@@ -31,6 +31,8 @@ class EigenProIterator(base.BaseSolver):
             model.kernel_fn, model.n_inputs, model.n_outputs, self.preconditioner.size)
 
         self.nystrom_model.centers = self.preconditioner.centers
+
+        self.grad_accumulation = torch.zeros(model.size, model.n_outputs)
         
         self.k_centers_nystroms_mult_eigenvecs = self.preconditioner.eval_vec(self.model.centers).to(self.dtype)
 

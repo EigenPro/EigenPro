@@ -15,15 +15,17 @@ class KernelMachine:
                  n_inputs: int,
                  n_outputs: int,
                  size: int,
-                 dtype: torch.dtype = torch.float32
+                 dtype: torch.dtype = torch.float32,
+                 weights: torch.Tensor = None,
+                 centers: torch.Tensor = None,
                 ):
         self._kernel_fn = kernel_fn
         self._n_inputs = n_inputs
         self._n_outputs = n_outputs
         self._size = size
         self._train = False
-        self._weights = torch.zeros(size, n_outputs, dtype=dtype)
-        self._centers = None
+        self._weights = weights if weights is not None else torch.zeros(size, n_outputs, dtype=dtype)
+        self._centers = centers if centers is not None else torch.zeros(size, n_inputs, dtype=dtype)
 
     def train(self):
         self._train = True
@@ -69,12 +71,12 @@ class KernelMachine:
     def centers(self, centers):
         self._centers = centers
     
-    def forward(self, x: torch.Tensor, cache_column_ids: torch.Tensor = None):
+    def forward(self, x: torch.Tensor, cache_columns_by_idx: torch.Tensor = None):
         """To add compatibility with other PyTorch models"""
         if self._train:
             kmat = self.kernel_fn(x, self.centers)
             preds = kmat @ self.weights
-            self._kmat_batch_centers_cached = kmat if cache_column_ids is None else kmat[:, cache_column_ids]
+            self._kmat_batch_centers_cached = kmat if cache_columns_by_idx is None else kmat[:, cache_columns_by_idx]
             del kmat
             return preds
         else:

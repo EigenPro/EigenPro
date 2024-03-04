@@ -8,7 +8,7 @@ import eigenpro.data.array_dataset as array_dataset
 import eigenpro.stateful_solver.base as base
 
 
-class EigenProSolverClassic(base.BaseSolver):
+class EigenProProjector(base.BaseSolver):
     """EigenPro optimizer for classical kernel models.
     """
     def __init__(self, 
@@ -29,7 +29,7 @@ class EigenProSolverClassic(base.BaseSolver):
             ):
         lr = self.preconditioner.scaled_learning_rate(len(batch_ids))
 
-        gm = self.model.forward(self.model.centers[batch_ids], cache_column_ids=self.preconditioner.center_ids) - batch_gz
+        gm = self.model.forward(self.model.centers[batch_ids], cache_columns_by_idx=self.preconditioner.center_ids) - batch_gz
         self.model.update_weights_by_index(batch_ids, -lr*gm)
 
         h = self.model.backward(gm)

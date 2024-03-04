@@ -14,15 +14,16 @@ import eigenpro.utils.device as dev
 
 
 def main():
-    n, n_test, p, d, c = 16384, 128, 4096*3, 16, 8
+    n_train, n_test, model_size, d_in, d_out = 16384, 128, 4096*3, 16, 8
     epochs = 4
-    s_data, s_model, q_data, q_model = 128, 64, 16, 8
+    data_preconditioner_size, data_preconditioner_level = 128, 16
+    model_preconditioner_size, model_preconditioner_level = 64, 8
 
-    X_train = torch.randn(n, d)
-    X_test = torch.randn(n_test, d)
-    Y_train = torch.randn(n, c)
-    Y_test = torch.randn(n_test, c)
-    Z = torch.randn(p, d)
+    X_train = torch.randn(n_train, d_in)
+    X_test = torch.randn(n_test, d_in)
+    Y_train = torch.randn(n_train, d_out)
+    Y_test = torch.randn(n_test, d_out)
+    Z = torch.randn(model_size, d_in)
 
     kernel_fn = lambda x, z: kernels.laplacian(x, z, bandwidth=20.)
     device = dev.Device.create(use_gpu_if_available=True)
@@ -36,7 +37,7 @@ def main():
     else:
         raise ValueError(f"Unknown device type: {device.devices[0].type}")
 
-    model = km.KernelMachine(kernel_fn, d, c, p)
+    model = km.KernelMachine(kernel_fn, d_in, d_out, model_size)
     model.centers = Z
     model.train()
 
@@ -44,8 +45,10 @@ def main():
         model, 
         X_train, Y_train, X_test, Y_test, device,
         dtype=dtype, kernel=kernel_fn,
-        s_data=s_data, s_model=s_model,
-        q_data=q_data, q_model=q_model,
+        data_preconditioner_size=data_preconditioner_size, 
+        data_preconditioner_level=data_preconditioner_level, 
+        model_preconditioner_size=model_preconditioner_size,
+        model_preconditioner_level=model_preconditioner_level,
         wandb=None, epochs=epochs,
     )
 
