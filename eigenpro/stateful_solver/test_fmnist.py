@@ -5,6 +5,9 @@ import multiprocessing
 import numpy as np
 import torch
 
+import os 
+data_dir = os.environ['DATA_DIR']
+
 import eigenpro.data.utils as data_utils
 import eigenpro.kernels as kernels
 import eigenpro.models.kernel_machine as km
@@ -12,7 +15,7 @@ from eigenpro.stateful_solver.solver_fit import fit
 import torch.nn.functional as F
 import eigenpro.utils.device as dev
 
-from datasets import load_fmnist_data
+import eigenpro.data.utils as data_utils
 
 def main():
     n_train, n_test, model_size = 50000, 10000, 20000
@@ -20,13 +23,9 @@ def main():
     data_preconditioner_size, data_preconditioner_level = 2000, 100
     model_preconditioner_size, model_preconditioner_level = 2000, 100
 
-    n_class, (X_train, Y_train), (X_test, Y_test) = load_fmnist_data() 
-    X_train, Y_train, X_test, Y_test = (
-            X_train.div(255.).flatten(1), F.one_hot(Y_train, n_class), 
-            X_test.div(255).flatten(1), F.one_hot(Y_test, n_class)
-        )
+    X_train, X_test, Y_train, Y_test = data_utils.load_fmnist(data_dir, n_train, n_test) 
  
-    d_in, d_out = X_train.shape[1], n_class
+    d_in, d_out = X_train.shape[1], Y_train.shape[1]
     Z = X_train[torch.randperm(len(X_train))[:model_size]]
 
     kernel_fn = lambda x, z: kernels.laplacian(x, z, bandwidth=20.)
@@ -42,7 +41,7 @@ def main():
         raise ValueError(f"Unknown device type: {device.devices[0].type}")
 
     model = km.KernelMachine(
-        kernel_fn, d_in, d_out, model_size, centers=Z, device=torch.device('cpu'), dtype=dtype)
+        kernel_fn, d_in, d_out, model_size, centers=Z, device=device.devices[0], dtype=dtype)
 
     model = fit(
         model, 
