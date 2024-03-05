@@ -41,7 +41,8 @@ def main():
         raise ValueError(f"Unknown device type: {device.devices[0].type}")
 
     model = km.KernelMachine(
-        kernel_fn, d_in, d_out, model_size, centers=Z, device=device.devices[0], dtype=dtype)
+        kernel_fn, d_in, d_out, model_size, 
+        centers=Z.to(dtype).to(device.device_base), device=device.device_base, dtype=dtype)
 
     model = fit(
         model, 
