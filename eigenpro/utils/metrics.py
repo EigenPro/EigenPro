@@ -2,7 +2,7 @@ import torch
 
 
 def get_performance(model, X, Y, batch_size=1024):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = model.device #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Ensure model is in evaluation mode
     # Convert X and Y to PyTorch datasets and use DataLoader for batch processing
