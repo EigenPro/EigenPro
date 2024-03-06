@@ -4,6 +4,7 @@ import torch
 import eigenpro.models.kernel_machine as km
 import eigenpro.preconditioners as pcd
 import eigenpro.stateful_solver.base as base
+from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor
 
 
 from typing import Callable, List, Optional
@@ -21,20 +22,49 @@ class LatentKernelMachine(km.KernelMachine):
     def __init__(self, *args, **kwargs):
         """Initializes a KernelMachine with fixed size.
         """
+        self.init_centers = self.reset_centers
+        self.init_weights = self.reset_weights
+
         super().__init__(*args, **kwargs)
 
         self.reset()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass for the kernel machine.
-        Args:
-                x (torch.Tensor): input tensor of shape [n_samples, n_inputs].
-        Returns:
-                torch.Tensor: tensor of shape [n_samples, n_outputs].
-        """
-        return fmm.KmV(self.kernel_fn, x, 
-            self.centers[:self.used_capacity],
-            self.weights[:self.used_capacity], col_chunk_size=2**16)
+    def reset_centers(self, centers=None):
+        if self.is_multi_device:
+            self._centers = DistributedTensor([
+                        torch.zeros(c, self.n_inputs, dtype=self.dtype, device=d
+                        ) for c, d in zip(self.device_manager.chunk_sizes(self.size), self.device_manager.devices)
+                    ])
+        else:
+            self._centers = SingleDeviceTensor(torch.zeros(self.size, self.n_inputs, dtype=self.dtype, device=self.device_manager.base_device))
+
+    def reset_weights(self, weights=None):
+        if self.is_multi_device:
+            self._weights = DistributedTensor([
+                        torch.zeros(c, self.n_outputs, dtype=self.dtype, device=d
+                        ) for c, d in zip(self.device_manager.chunk_sizes(self.size), self.device_manager.devices)
+                    ])
+        else:
+            self._weights = SingleDeviceTensor(torch.zeros(self.size, self.n_outputs, dtype=self.dtype, device=self.device_manager.base_device))
+
+    @property
+    def centers(self):
+        return self._centers[:self.used_capacity]
+
+    @property
+    def weights(self):
+        return self._weights[:self.used_capacity]
+
+    # def forward(self, x: torch.Tensor) -> torch.Tensor:
+    #     """Forward pass for the kernel machine.
+    #     Args:
+    #             x (torch.Tensor): input tensor of shape [n_samples, n_inputs].
+    #     Returns:
+    #             torch.Tensor: tensor of shape [n_samples, n_outputs].
+    #     """
+    #     return fmm.KmV(self.kernel_fn, x, 
+    #         self.centers[:self.used_capacity],
+    #         self.weights[:self.used_capacity], col_chunk_size=2**16)
 
 
     def append_centers_and_weights(self, new_centers: torch.Tensor, new_weights: torch.Tensor):
@@ -54,13 +84,13 @@ class LatentKernelMachine(km.KernelMachine):
         """reset the model to before temporary centers were added.
         """
         self.used_capacity = 0
-        self.centers = torch.zeros(self.size, self.n_inputs, device=self.device, dtype=self.dtype)
-        self.weights = torch.zeros(self.size, self.n_outputs, device=self.device, dtype=self.dtype)
+        self.reset_centers()
+        self.reset_weights()
 
 
 
 
-class EigenProIterator(base.BaseSolver):
+class EigenProIterator:
     """EigenPro iterator for general kernel models.
     """
 
@@ -72,26 +102,28 @@ class EigenProIterator(base.BaseSolver):
                 ) -> None:
         """Initialize the EigenPro optimizer."""
 
-        super().__init__(model, dtype)        
+        self._model, self._dtype = model, dtype
         
         self._state_max_size = state_max_size
         self.preconditioner = preconditioner
 
         self.latent_model = LatentKernelMachine(
             model.kernel_fn, model.n_inputs, model.n_outputs, self.state_max_size,
-            dtype=model.dtype, device=model.device)
+            dtype=model.dtype, device_manager=model.device_manager, centers=None)
 
         self.latent_nystrom_model = km.KernelMachine(
             model.kernel_fn, model.n_inputs, model.n_outputs, self.preconditioner.size,
-            dtype=model.dtype, device=model.device)
-
-        self.latent_nystrom_model.centers = self.preconditioner.centers
+            dtype=model.dtype, device_manager=model.device_manager, centers=self.preconditioner.centers)
 
         self.grad_accumulation = torch.zeros(model.size, model.n_outputs)
         
-        self.k_centers_nystroms_mult_eigenvecs = self.preconditioner.eval_vec(self.model.centers).to(self.dtype)
+        self.k_centers_nystroms_mult_eigenvecs = self.preconditioner.eval_vec(self.model.centers).to(self.model.dtype)
 
         self.projection_dataloader = None
+
+    @property
+    def model(self):
+        return self._model
 
     @property
     def state_max_size(self):
@@ -113,12 +145,11 @@ class EigenProIterator(base.BaseSolver):
         batch_p_nys = self.latent_nystrom_model(batch_x)
 
         # gradient in function space K(., batch) (f-y)
-        grad = batch_p_base + batch_p_temp + batch_p_nys - batch_y.to(self.dtype).to(batch_p_base.device)
+        grad = batch_p_base + batch_p_temp + batch_p_nys - batch_y.to(batch_p_base.device)
         batch_size = batch_x.shape[0]
 
         lr = self.preconditioner.scaled_learning_rate(batch_size)
-        deltap, delta = self.preconditioner.delta(
-            batch_x.to(grad.device).to(self.dtype), grad.to(self.dtype))
+        deltap, delta = self.preconditioner.delta(batch_x.to(grad.device), grad)
 
         self.grad_accumulation -= lr*\
                                  ( self.model.backward(grad) -
@@ -142,4 +173,4 @@ class EigenProIterator(base.BaseSolver):
         """
         self.latent_model.reset()
         
-        self.latent_nystrom_model.weights = torch.zeros(self.preconditioner.size, self.model.n_outputs, dtype=self.dtype)
+        self.latent_nystrom_model.init_weights(None)

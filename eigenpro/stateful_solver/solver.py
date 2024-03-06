@@ -51,6 +51,8 @@ class EigenProSolver(base.BaseSolver):
                 desc=f"Epoch {epoch + 1}/{epochs}")
 
             for t, (x_batch, y_batch, _) in epoch_progress:
+                x_batch = self.model.device_manager.broadcast(x_batch)
+                y_batch = self.model.device_manager.broadcast(y_batch)
 
                 self.iterator.step(x_batch, y_batch)
 

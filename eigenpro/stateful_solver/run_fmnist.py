@@ -29,24 +29,25 @@ def main():
     Z = X_train[torch.randperm(len(X_train))[:model_size]]
 
     kernel_fn = lambda x, z: kernels.laplacian(x, z, bandwidth=20.)
-    device = dev.Device.create(use_gpu_if_available=True)
+    device_manager = dev.DeviceManager(use_gpu_if_available=True)
 
     # To run on CPU, dtype can not be `torch.float16` since
     # PyTorch does not support half-precision multiplication on CPU.
-    if device.devices[0].type == 'cpu':
+    if device_manager.devices[0].type == 'cpu':
         dtype = torch.float32
-    elif device.devices[0].type == 'cuda':
+    elif device_manager.devices[0].type == 'cuda':
         dtype = torch.float16
     else:
-        raise ValueError(f"Unknown device type: {device.devices[0].type}")
+        raise ValueError(f"Unknown device type: {device.base_device.type}")
 
     model = km.KernelMachine(
         kernel_fn, d_in, d_out, model_size, 
-        centers=Z.to(dtype).to(device.device_base), device=device.device_base, dtype=dtype)
+        centers=Z, 
+        device_manager=device_manager, dtype=dtype)
 
     model = fit(
         model, 
-        X_train[:n_train], Y_train[:n_train], X_test, Y_test, device,
+        X_train, Y_train, X_test, Y_test,
         dtype=dtype, kernel=kernel_fn,
         data_preconditioner_size=data_preconditioner_size, 
         data_preconditioner_level=data_preconditioner_level, 

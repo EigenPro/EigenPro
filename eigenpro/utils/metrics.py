@@ -2,8 +2,8 @@ import torch
 
 
 def get_performance(model, X, Y, batch_size=1024):
-    device = model.device #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    device_manager = model.device_manager #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.eval()
     # Ensure model is in evaluation mode
     # Convert X and Y to PyTorch datasets and use DataLoader for batch processing
     dataset = torch.utils.data.TensorDataset(X, Y)
@@ -16,10 +16,10 @@ def get_performance(model, X, Y, batch_size=1024):
     with torch.no_grad():
         for batch_X, batch_Y in dataloader:
             # Move batch to GPU
-            batch_X, batch_Y = batch_X.to(device), batch_Y.to(device)
+            batch_X, batch_Y = device_manager.broadcast(batch_X), batch_Y.to(device_manager.base_device)
 
             # Forward pass
-            Y_hat = model(batch_X).to(device)
+            Y_hat = device_manager.gather(model(batch_X))
 
             # Calculate loss and accuracy
             loss = torch.norm(Y_hat - batch_Y)**2 / batch_Y.size(0)
@@ -30,7 +30,7 @@ def get_performance(model, X, Y, batch_size=1024):
             total_accuracy += accuracy
             total_samples += batch_Y.size(0)
             
-            del batch_X, batch_Y
+            del batch_X, batch_Y, Y_hat
 
     # Calculate average loss and accuracy
     avg_loss = total_loss / total_samples
