@@ -5,9 +5,9 @@ import torch.utils.data as torch_data
 import eigenpro.models.kernel_machine as km
 import eigenpro.preconditioners as pcd
 import eigenpro.data.array_dataset as array_dataset
-import eigenpro.stateful_solver.base as base 
-import eigenpro.stateful_solver.iterator as iterator
-import eigenpro.stateful_solver.projector as projector
+import eigenpro.solver.base as base 
+import eigenpro.solver.iterator as iterator
+import eigenpro.solver.projector as projector
 
 from tqdm import tqdm
 
@@ -38,8 +38,6 @@ class EigenProSolver(base.BaseSolver):
             preconditioner = model_preconditioner,
             dtype = self.dtype,)
 
-        # self.iterator.reset_gradient()
-
 
     def fit(self, train_dataloader, epochs):
         
@@ -51,16 +49,15 @@ class EigenProSolver(base.BaseSolver):
                 desc=f"Epoch {epoch + 1}/{epochs}")
 
             for t, (x_batch, y_batch, _) in epoch_progress:
-                x_batch = self.model.device_manager.broadcast(x_batch)
-                y_batch = self.model.device_manager.broadcast(y_batch)
 
                 self.iterator.step(x_batch, y_batch)
 
                 # run projection when more temporary centers cannot be added or at the end of last epoch
                 if ( 
                     ( # used_capacity \in (temp_model_size - batch_size, temp_model_size]
-                        (self.iterator.latent_model.used_capacity <= self.iterator.state_max_size)
-                        and (self.iterator.latent_model.used_capacity > self.iterator.state_max_size - len(y_batch))
+                        ## CHECK IF the `any` logic is sound for multi-device behavior
+                        any(self.iterator.latent_model.used_capacity <= self.model.device_manager.chunk_sizes(self.iterator.state_max_size))
+                        and any(self.iterator.latent_model.used_capacity > self.model.device_manager.chunk_sizes(self.iterator.state_max_size) - len(y_batch))
                     ) 
                     or 
                     ( # last batch of last epoch
@@ -69,7 +66,8 @@ class EigenProSolver(base.BaseSolver):
                    ):
 
                     self.projector.loader.dataset.data_y = self.iterator.grad_accumulation
-                    self.iterator.reset()
+                    
+                    self.iterator.release_memory_for_projection()
 
                     # projection
                     for _ in range(self.epochs_per_projection):
@@ -81,8 +79,7 @@ class EigenProSolver(base.BaseSolver):
                             ):
                             self.projector.step(grad_batch, batch_ids)
 
-                    # self.model.eval()
-                    # self.iterator.reset_gradient()
-                    # self.model.train()
+                    self.iterator.reset()
+
         self.model.eval()
 

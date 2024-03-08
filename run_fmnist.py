@@ -11,7 +11,7 @@ data_dir = os.environ['DATA_DIR']
 import eigenpro.data.utils as data_utils
 import eigenpro.kernels as kernels
 import eigenpro.models.kernel_machine as km
-from eigenpro.stateful_solver.solver_fit import fit
+from eigenpro.solver_fit import fit
 import torch.nn.functional as F
 import eigenpro.utils.device as dev
 

@@ -1,36 +1,13 @@
-from typing import Callable, List, Optional
-from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor
+from typing import Callable, List, Optional, Union
+from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor, BaseDeviceTensor
 from eigenpro.utils.types import assert_and_raise
+from eigenpro.utils.ops import (
+        distributed_kernel_evaluation,
+        distributed_matrix_multiply,
+        distributed_matrix_slicing
+    )
 import torch
 
-
-
-def distributed_kernel_evaluation(kernel_fn, X: DistributedTensor, centers: DistributedTensor):
-    with ThreadPoolExecutor() as executor:
-        out = [
-                executor.submit(kernel_fn, x, z) for x, z in zip(X, centers)
-            ]
-        kmat = DistributedTensor([k.result() for k in out])
-        del out
-    return kmat
-
-def distributed_matrix_multiply(mat1: DistributedTensor, mat2: DistributedTensor):
-    with ThreadPoolExecutor() as executor:
-        out = [
-                executor.submit(torch.matmul, m1, m2) for m1, m2 in zip(mat1, mat2)
-            ]
-        mat3 = DistributedTensor([k.result() for k in out])
-        del out
-    return mat3
-
-def distributed_matrix_slicing(mat: DistributedTensor, idx: DistributedTensor, offsets: torch.Tensor):
-    with ThreadPoolExecutor() as executor:
-        out = [
-                executor.submit(torch.index_select, m, 0, o+i) for m, i, o in zip(mat, idx, offsets)
-            ]
-        mat3 = DistributedTensor([k.result() for k in out])
-        del out
-    return mat3
 
 
 class KernelMachine:
@@ -64,7 +41,7 @@ class KernelMachine:
 
         if self.is_multi_device:
             chunk_sizes = device_manager.chunk_sizes(size)
-            self._device_offsets = torch.cumsum(chunk_sizes, dtype=torch.int64) - chunk_sizes[0]
+            self._device_offsets = torch.cumsum(torch.as_tensor(chunk_sizes), 0, dtype=torch.int64) - chunk_sizes[0]
         else:
             self._device_offsets = torch.zeros(1,dtype=torch.int64)
 
@@ -110,6 +87,10 @@ class KernelMachine:
         else:
             raise TypeError("input `weights` must be of type `DistributedTensor` or `SingleDeviceTensor`")
 
+    @weights.deleter
+    def weights(self):
+        del self._weights
+    
     def init_weights(self, weights):
         if weights is None:
             if self.is_multi_device:
@@ -118,9 +99,13 @@ class KernelMachine:
                         ) for c, d in zip(self.device_manager.chunk_sizes(self.size), self.device_manager.devices)
                     ])
             else:
-                self.weights = SingleDeviceTensor(torch.zeros(self.size, self.n_outputs, dtype=self.dtype, device=self.device_manager.base_device))
+                self.weights = SingleDeviceTensor(
+                    torch.zeros(
+                        self.size, self.n_outputs, 
+                        dtype=self.dtype, 
+                        device=self.device_manager.base_device))
         elif isinstance(weights, torch.Tensor):
-            self.weights = device_manager.scatter(weights)
+            self.weights = self.device_manager.scatter(weights)
         elif isinstance(weights, DistributedTensor):
             self.weights = weights
         else:
@@ -136,11 +121,13 @@ class KernelMachine:
         return self._centers # of type `DistributedTensor`
 
 
-    def forward(self, x: torch.Tensor, cache_columns_by_idx: torch.Tensor = None):
+    def forward(self, 
+            x: Union[torch.Tensor, SingleDeviceTensor], 
+            cache_columns_by_idx: Union[torch.Tensor, SingleDeviceTensor] = None):
         """To add compatibility with other PyTorch models"""
         if self.is_multi_device:
             return self.forward_distributed(x, cache_columns_by_idx)
-        assert_and_raise(x, SingleDeviceTensor)
+        # assert_and_raise(x, SingleDeviceTensor)
         assert_and_raise(self.centers, SingleDeviceTensor)
         assert_and_raise(self.weights, SingleDeviceTensor)
         kmat = self.kernel_fn(x, self.centers)
@@ -150,24 +137,27 @@ class KernelMachine:
             del kmat
         return preds
 
-    def forward_distributed(self, x, cache_columns_by_idx: DistributedTensor):
+    def forward_distributed(self, x, cache_columns_by_idx: DistributedTensor = None):
         assert_and_raise(x, DistributedTensor)
         assert_and_raise(self.centers, DistributedTensor)
-        assert_and_raise(cache_columns_by_idx, DistributedTensor)
-        assert len(x)==len(self.centers)
+        # if cache_columns_by_idx is not None:
+        #     assert_and_raise(cache_columns_by_idx, DistributedTensor)
+        assert x.num_parts==self.centers.num_parts
         kmat = distributed_kernel_evaluation(self.kernel_fn, x, self.centers)
         preds = distributed_matrix_multiply(kmat, self.weights)
         if self._train:
             if cache_columns_by_idx is None:
                 self._kmat_batch_centers_cached = kmat 
-            else:
+            elif isinstance(cache_columns_by_idx, DistributedTensor):
                 self._kmat_batch_centers_cached = distributed_matrix_slicing(kmat, cache_columns_by_idx)
+            elif isinstance(cache_columns_by_idx, BaseDeviceTensor):
+                self._kmat_batch_centers_cached = kmat.parts[self.device_manager.base_device_idx][:, cache_columns_by_idx]
         del kmat
         return preds
 
     def backward(self, grad):
         if self.is_multi_device:
-            return self.backward_distributed(self, grad)
+            return self.backward_distributed(grad)
         assert_and_raise(grad, SingleDeviceTensor)
         if self._train:
             try:
@@ -193,18 +183,18 @@ class KernelMachine:
             raise ValueError("method `KernelMachine.backward` cannot be invoked when model is not trainable. "
                 "Try again after model.train()")
     
-    def update_weights_by_index(self, other_tensor, indices, alpha=1.0):
-        if self.is_multi_device:
-            assert_and_raise(other_tensor, DistributedTensor)
-            assert_and_raise(indices, DistributedIndices)
-            for dev_id, (w, idx) in enumerate(zip(self._weights, indices)):
-                w[dev_id][idx].add(other_tensor[dev_id], alpha=alpha)
-        else:
-            assert_and_raise(other_tensor, SingleDeviceTensor)
-            assert_and_raise(indices, SingleDeviceTensor)
-            self.weights[indices] += other_tensor
+    # def update_weights_by_index(self, other_tensor, indices, alpha=1.0):
+    #     if self.is_multi_device:
+    #         assert_and_raise(other_tensor, DistributedTensor)
+    #         assert_and_raise(indices, DistributedIndices)
+    #         for dev_id, (w, idx) in enumerate(zip(self.weights.parts, indices)):
+    #             w[dev_id][idx].add(other_tensor[dev_id], alpha=alpha)
+    #     else:
+    #         assert_and_raise(other_tensor, SingleDeviceTensor)
+    #         assert_and_raise(indices, SingleDeviceTensor)
+    #         self.weights[indices] += other_tensor
 
-    def update_weights(self, other_tensor, alpha=1.0):
-        assert_and_raise(other_tensor, DistributedTensor)
-        for dev_id, (w) in enumerate(self._weights):
-            w[dev_id].add(other_tensor[dev_id], alpha=alpha)
+    # def update_weights(self, other_tensor, alpha=1.0):
+    #     assert_and_raise(other_tensor, DistributedTensor)
+    #     for dev_id, (w) in enumerate(self._weights):
+    #         w[dev_id].add(other_tensor[dev_id], alpha=alpha)
