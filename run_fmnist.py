@@ -10,7 +10,7 @@ data_dir = os.environ['DATA_DIR']
 
 import eigenpro.data.utils as data_utils
 import eigenpro.kernels as kernels
-import eigenpro.models.kernel_machine as km
+import eigenpro.kernel_machine as km
 from eigenpro.solver_fit import fit
 import torch.nn.functional as F
 import eigenpro.utils.device as dev
@@ -19,7 +19,7 @@ import eigenpro.data.utils as data_utils
 
 def main():
     n_train, n_test, model_size = 50000, 10000, 20000
-    epochs = 2
+    epochs = 3
     data_preconditioner_size, data_preconditioner_level = 2000, 100
     model_preconditioner_size, model_preconditioner_level = 2000, 100
 

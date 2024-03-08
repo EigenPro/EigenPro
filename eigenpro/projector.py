@@ -3,10 +3,9 @@ import torch
 import torch.utils.data as torch_data
 import numpy as np
 
-import eigenpro.models.kernel_machine as km
+import eigenpro.kernel_machine as km
 import eigenpro.preconditioners as pcd
 import eigenpro.data.array_dataset as array_dataset
-import eigenpro.solver.base as base
 from eigenpro.utils.types import assert_and_raise
 from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor, BaseDeviceTensor
 
@@ -47,54 +46,53 @@ def update_weights_by_index(model, other_tensor, indices, alpha):
 
 
 
-class EigenProProjector(base.BaseSolver):
+class EigenProProjector:
     """EigenPro optimizer for classical kernel models.
     """
     def __init__(self, 
             model: km.KernelMachine,
-            dtype: torch.dtype,
             preconditioner: pcd.Preconditioner,
         ):
-        
-        super().__init__(model, dtype)
         self.preconditioner = preconditioner
-        self.dataset = array_dataset.ArrayDataset(self.model.centers, torch.zeros(self.model.size, self.model.n_inputs))
+        self.dataset = array_dataset.ArrayDataset(model.centers, torch.zeros(model.size, model.n_inputs))
         self.loader = torch_data.DataLoader(self.dataset, self.preconditioner.critical_batch_size, shuffle=False)
 
 
     def step(self,
+             model,
              batch_gz: torch.Tensor,
              batch_ids: torch.Tensor,
             ):
+        assert model._train
         lr = self.preconditioner.scaled_learning_rate(len(batch_ids))
-        z_batch = self.model.device_manager.broadcast(self.model.centers[batch_ids])
-        batch_gz = self.model.device_manager.to_base(batch_gz)
-        batch_ids = self.model.device_manager.broadcast(batch_ids)
-        gm = self.model.forward(z_batch, cache_columns_by_idx=self.preconditioner.center_ids) 
+        z_batch = model.device_manager.broadcast(model.centers[batch_ids])
+        batch_gz = model.device_manager.to_base(batch_gz)
+        batch_ids = model.device_manager.broadcast(batch_ids)
+        gm = model.forward(z_batch, cache_columns_by_idx=self.preconditioner.center_ids) 
         
         # do computation while communications occurs
-        k = self.model.kernel_fn(self.preconditioner.centers, 
-            z_batch.at_device(self.model.device_manager.base_device_idx))
+        k = model.kernel_fn(self.preconditioner.centers, 
+            z_batch.at_device(model.device_manager.base_device_idx))
         ftk = self.preconditioner.normalized_eigenvectors.T @ k
         fftk = self.preconditioner.normalized_eigenvectors @ ftk
 
-        gm = self.model.device_manager.reduce_add(gm) - batch_gz
+        gm = model.device_manager.reduce_add(gm) - batch_gz
 
         h = fftk @ gm
 
-        if self.model.is_multi_device:
-            batch_device = self.model.weights.get_device_id_by_idx(batch_ids)
+        if model.is_multi_device:
+            batch_device = model.weights.get_device_id_by_idx(batch_ids)
             update_weights_by_index(
-                self.model, 
+                model, 
                 gm, 
                 batch_ids.at_device(batch_device), 
                 alpha=-lr)
         else:
-            update_weights_by_index(self.model, 
+            update_weights_by_index(model, 
                 gm, batch_ids, alpha=-lr)
         
         update_weights_by_index(
-            self.model, 
+            model, 
             h, self.preconditioner.center_ids, alpha=lr)
 
 

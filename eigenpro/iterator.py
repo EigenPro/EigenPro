@@ -1,9 +1,8 @@
 """Optimizer class and utility functions for EigenPro iteration."""
 import torch
 from concurrent.futures import ThreadPoolExecutor
-import eigenpro.models.kernel_machine as km
+import eigenpro.kernel_machine as km
 import eigenpro.preconditioners as pcd
-import eigenpro.solver.base as base
 from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor
 from eigenpro.utils.ops import distributed_matrix_slicing, distributed_kernel_evaluation
 from eigenpro.utils.types import assert_and_raise
@@ -12,8 +11,6 @@ from eigenpro.utils.types import assert_and_raise
 from typing import Callable, List, Optional, Union
 import torch
 
-import eigenpro.models.kernel_machine as km
-import eigenpro.utils.cache as cache
 import eigenpro.utils.fmm as fmm
 
 
@@ -141,13 +138,11 @@ class EigenProIterator:
 
     def __init__(self,
                  model: km.KernelMachine,
-                 dtype: torch.dtype = torch.float32,
                  preconditioner: pcd.Preconditioner = None,
                  state_max_size: int = -1,
                 ) -> None:
         """Initialize the EigenPro optimizer."""
 
-        self._model, self._dtype = model, dtype
         
         self._state_max_size = state_max_size
         self.preconditioner = preconditioner
@@ -155,37 +150,36 @@ class EigenProIterator:
         self.latent_model = LatentKernelMachine(
             model.kernel_fn, model.n_inputs, model.n_outputs, self.state_max_size,
             dtype=model.dtype, device_manager=model.device_manager, centers=None)
+
         self.latent_nystrom_model = km.KernelMachine(
             model.kernel_fn, model.n_inputs, model.n_outputs, self.preconditioner.size,
             dtype=model.dtype, device_manager=model.device_manager, 
-            # centers=self.model.device_manager.scatter(self.preconditioner.centers)
+            # centers=model.device_manager.scatter(self.preconditioner.centers)
             centers=self.preconditioner.centers # they get scattered in km.KernelMachine.__init__()
             )
 
-        if self.model.is_multi_device:
+        if model.is_multi_device:
             self.grad_accumulation = DistributedTensor([
-                        torch.zeros(c, self.model.n_outputs, dtype=self.model.dtype, device=d
-                        ) for c, d in zip(self.model.device_manager.chunk_sizes(self.model.size), self.model.device_manager.devices)
+                        torch.zeros(c, model.n_outputs, dtype=model.dtype, device=d
+                        ) for c, d in zip(model.device_manager.chunk_sizes(model.size), model.device_manager.devices)
                     ])
         else:
-            self.grad_accumulation = SingleDeviceTensor(torch.zeros(self.model.size, self.model.n_outputs, device=self.model.device_manager.base_device, dtype=self.model.dtype))
+            self.grad_accumulation = SingleDeviceTensor(torch.zeros(model.size, model.n_outputs, device=model.device_manager.base_device, dtype=model.dtype))
         
-        self.model.eval()
-        if self.model.is_multi_device:
+        model.eval()
+        if model.is_multi_device:
             self.k_centers_nystroms_mult_normalized_eigenvectors = distributed_kernel_evaluation(
-                        self.model.kernel_fn,
-                        self.model.centers,
-                        self.model.device_manager.broadcast(self.preconditioner.centers),
-                    ) @ self.model.device_manager.broadcast(self.preconditioner.normalized_eigenvectors)
+                        model.kernel_fn,
+                        model.centers,
+                        model.device_manager.broadcast(self.preconditioner.centers),
+                    ) @ model.device_manager.broadcast(self.preconditioner.normalized_eigenvectors)
         else:
-            self.k_centers_nystroms_mult_normalized_eigenvectors = self.model.kernel_fn(
-                    self.model.centers, self.preconditioner.centers
+            self.k_centers_nystroms_mult_normalized_eigenvectors = model.kernel_fn(
+                    model.centers, self.preconditioner.centers
                 ) @ self.preconditioner.normalized_eigenvectors
 
-        self.preconditioner_normalized_eigenvectors_scattered = self.model.device_manager.scatter(self.preconditioner.normalized_eigenvectors)
+        self.preconditioner_normalized_eigenvectors_scattered = model.device_manager.scatter(self.preconditioner.normalized_eigenvectors)
         
-        # self.preconditioner.eval_vec(self.model.centers).to(self.model.dtype)
-
         self.projection_dataloader = None
 
     @property
@@ -207,6 +201,7 @@ class EigenProIterator:
         return self._state_max_size
 
     def step(self,
+             model: km.KernelMachine,
              batch_x: Union[torch.Tensor, DistributedTensor],
              batch_y: torch.Tensor,
             ) -> None:
@@ -216,41 +211,39 @@ class EigenProIterator:
             batch_x (torch.Tensor): Batch of input features.
             batch_y (torch.Tensor): Batch of target values.
         """
-        batch_x = self.model.device_manager.broadcast(batch_x)
-        batch_y = self.model.device_manager.to_base(batch_y)
+        assert model._train
 
-        batch_p_base = self.model(batch_x)
+        batch_x = model.device_manager.broadcast(batch_x)
+        batch_y = model.device_manager.to_base(batch_y)
+
+        batch_p_base = model(batch_x)
         batch_p_temp = self.latent_model(batch_x)
         batch_p_nys = self.latent_nystrom_model(batch_x)
 
         # gradient in function space K(., batch) (f-y)
         grad = batch_p_base + batch_p_temp + batch_p_nys 
-        grad = self.model.device_manager.reduce_add(grad) - batch_y
+        grad = model.device_manager.reduce_add(grad) - batch_y
         batch_size = grad.shape[0]
 
 
         lr = self.preconditioner.scaled_learning_rate(batch_size)
 
         ### Runs on base device
-        kg = self.model.kernel_fn(self.preconditioner.centers, batch_x.at_device(self.model.device_manager.base_device_idx)) @ grad
+        kg = model.kernel_fn(self.preconditioner.centers, batch_x.at_device(model.device_manager.base_device_idx)) @ grad
         
         gamma = self.preconditioner.normalized_eigenvectors.T @ kg
         
 
         ### Broadcast grad and gamma
-        gamma = self.model.device_manager.broadcast(gamma)
-        grad = self.model.device_manager.broadcast(grad)
+        gamma = model.device_manager.broadcast(gamma)
+        grad = model.device_manager.broadcast(grad)
         
         # Runs on all devices
-        self.grad_accumulation -= (self.model.backward(grad) - self.k_centers_nystroms_mult_normalized_eigenvectors @ gamma)*lr
+        self.grad_accumulation -= (model.backward(grad) - self.k_centers_nystroms_mult_normalized_eigenvectors @ gamma)*lr
 
         self.latent_model.append_centers_and_weights(batch_x, grad*(-lr))
 
         self.latent_nystrom_model.weights += (self.preconditioner_normalized_eigenvectors_scattered @ gamma)*lr
-
-
-    def reset_gradient(self):
-        self.grad_accumulation = self.model(self.model.centers) #torch.zeros(self.model.size, self.model.n_outputs, dtype=self.dtype)
 
 
     def reset(self):

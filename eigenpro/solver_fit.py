@@ -48,9 +48,6 @@ def fit(model,
 
     data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, data_preconditioner_level)
     model_preconditioner = pcd.Preconditioner(kernel_fn, nys_model, model_preconditioner_level, nys_model_ids)
-
-    # data_preconditioner.change_type(dtype=dtype)
-    # model_preconditioner.change_type(dtype=dtype)
                    
     # data loader
     dataset = array_dataset.ArrayDataset(X, Y)
@@ -63,7 +60,6 @@ def fit(model,
         model, 
         data_preconditioner,
         model_preconditioner,
-        dtype,
         tmp_centers_coeff,
         epochs_per_projection = 1)
 
@@ -95,7 +91,8 @@ def fit(model,
     # Print the table
     print(table)
 
-    eigenpro_solver.fit(train_dataloader, epochs)
+    #### Fitting the model with a training dataset
+    eigenpro_solver.fit(model, train_dataloader, epochs)
 
     # calculate test error if test data provided
     if (x is not None) and (y is not None):
