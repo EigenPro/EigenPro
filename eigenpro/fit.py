@@ -38,7 +38,7 @@ def fit_model(model,
     generator=torch.Generator(device=base_device)
     nys_model_ids = model.device_offsets[base_device_idx] + BaseDeviceTensor( # make sure all model nystrom centers are on base device 
         torch.randperm(
-            device_manager.chunk_sizes(model.size)[base_device_idx], 
+            int(device_manager.chunk_sizes(model.size)[base_device_idx]), 
             generator, device=base_device)[:model_preconditioner_size]
         )
 
