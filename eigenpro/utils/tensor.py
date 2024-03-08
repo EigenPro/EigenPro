@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from eigenpro.utils.types import assert_and_raise
 from typing import List
 
@@ -17,9 +16,11 @@ class BaseDeviceTensor(SingleDeviceTensor):
 
 class DistributedTensor:
 
-    def __init__(self, tensor_list: List[SingleDeviceTensor]):
-        self._list = [SingleDeviceTensor(t) for t in tensor_list]
-        self._lengths = torch.as_tensor([len(tensor) for tensor in tensor_list])
+    def __init__(self, tensor_list: List[SingleDeviceTensor], base_device_idx: int):
+        self._list = [BaseDeviceTensor(t) if i==base_device_idx else SingleDeviceTensor(t) for i,t in enumerate(tensor_list)]
+        self._base_device_idx = base_device_idx
+        
+        self._lengths = torch.as_tensor([len(tensor) for tensor in tensor_list]).to(self.parts[base_device_idx])
         self._total_length = sum(self._lengths)
         self._offsets = torch.cumsum(torch.as_tensor(self._lengths), 0, dtype=torch.int64) - self._lengths[0]
 
@@ -29,7 +30,7 @@ class DistributedTensor:
         return SingleDeviceTensor(self._list[device_id_of_index][index - self._offsets[device_id_of_index]])
 
     def get_device_id_by_idx(self, index):
-        return np.searchsorted(self._offsets, index if isinstance(index, int) else index[0]) - 1
+        return torch.searchsorted(self._offsets, index if isinstance(index, int) else index[0]) - 1
 
     @property
     def lengths(self):
@@ -42,6 +43,10 @@ class DistributedTensor:
     @property
     def num_parts(self):
         return len(self._list)
+
+    @property
+    def base_device_idx(self):
+        return self._base_device_idx
 
     @property
     def parts(self):
@@ -73,7 +78,9 @@ class DistributedTensor:
     def __repr__(self):
         string = f"{type(self).__name__}\n"
         for i, p in enumerate(self.parts): 
-            string += f'  {i}: ' + str(p) + '\n' 
+            string += (
+                f'* {i}: ' + str(p) + '\n' if i==self.base_device_idx
+            else f'  {i}: ' + str(p) + '\n')
         return string
 
     @property
@@ -98,9 +105,9 @@ class ScatteredTensor(DistributedTensor):
 
 
 if __name__ == "__main__":
-    from eigenpro.utils.device import DeviceManager
-    device_manager = DeviceManager([torch.device('cpu'), torch.device('cpu')])
-    tensor = DistributedTensor(torch.arange(40).reshape(20,2).split(10))
+    from eigenpro.device_manager import DeviceManager
+    device_manager = DeviceManager([torch.device('cpu'), torch.device('cpu')], base_device_idx=0)
+    tensor = DistributedTensor(torch.arange(40).reshape(20,2).split(10), base_device_idx=1)
     
     # index = DistributedTensor([torch.LongTensor([7,8]), torch.LongTensor(112,13)])
     print(tensor)
