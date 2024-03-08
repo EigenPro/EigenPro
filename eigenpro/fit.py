@@ -9,13 +9,13 @@ from eigenpro.utils.tensor import BaseDeviceTensor
 
 import eigenpro.data.array_dataset as array_dataset
 import eigenpro.kernels as kernels
-import eigenpro.preconditioners as pcd
+import eigenpro.preconditioner as pcd
 import eigenpro.solver as sol
 import eigenpro.utils.mapreduce as mapreduce
 import eigenpro.utils.metrics as metrics
 
 
-def fit(model, 
+def fit_model(model, 
     X, Y, x=None, y=None, dtype=torch.float32, kernel=None,
     data_preconditioner_size=3_000, data_preconditioner_level=150, 
     model_preconditioner_size=3_000, model_preconditioner_level=150, 

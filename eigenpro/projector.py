@@ -4,7 +4,7 @@ import torch.utils.data as torch_data
 import numpy as np
 
 import eigenpro.kernel_machine as km
-import eigenpro.preconditioners as pcd
+import eigenpro.preconditioner as pcd
 import eigenpro.data.array_dataset as array_dataset
 from eigenpro.utils.types import assert_and_raise
 from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor, BaseDeviceTensor

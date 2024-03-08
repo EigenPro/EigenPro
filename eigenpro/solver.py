@@ -3,7 +3,7 @@ import torch
 import torch.utils.data as torch_data
 
 import eigenpro.kernel_machine as km
-import eigenpro.preconditioners as pcd
+import eigenpro.preconditioner as pcd
 import eigenpro.data.array_dataset as array_dataset
 import eigenpro.iterator as iterator
 import eigenpro.projector as projector

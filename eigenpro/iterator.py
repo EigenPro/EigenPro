@@ -2,7 +2,7 @@
 import torch
 from concurrent.futures import ThreadPoolExecutor
 import eigenpro.kernel_machine as km
-import eigenpro.preconditioners as pcd
+import eigenpro.preconditioner as pcd
 from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor
 from eigenpro.utils.ops import distributed_matrix_slicing, distributed_kernel_evaluation
 from eigenpro.utils.types import assert_and_raise

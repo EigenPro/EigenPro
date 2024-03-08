@@ -4,8 +4,6 @@ import torch
 import scipy
 import math
 
-import eigenpro.kernels as k
-import eigenpro.utils.device as dev
 
 class TestProblem:
     def __init__(self):
@@ -21,12 +19,6 @@ class TestProblem:
         self.qd = 8
         
         self.dtype = torch.float64
-        self.kernel_fn = lambda x,z: k.laplacian(x,z,bandwidth=1.)
-        self.device_manager = dev.DeviceManager(
-                [torch.device('cpu'),
-                # torch.device('cpu'),
-                ]
-            )
 
         self.data_X = torch.randn(self.n, self.d, dtype=self.dtype)
         self.data_Y = torch.randn(self.n, self.c, dtype=self.dtype)
@@ -42,6 +34,7 @@ class TestProblem:
         self.nystrom_centers_for_model = self.model_Z[self.nystrom_center_ids_for_model]
         
         
+    def calculate_eigensystems(self):
         Ld, Ed = scipy.linalg.eigh(
             self.kernel_fn(self.nystrom_centers_for_data, self.nystrom_centers_for_data).numpy(),
             subset_by_index=[self.sd-self.qd-1, self.sd-1]

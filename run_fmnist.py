@@ -11,9 +11,9 @@ data_dir = os.environ['DATA_DIR']
 import eigenpro.data.utils as data_utils
 import eigenpro.kernels as kernels
 import eigenpro.kernel_machine as km
-from eigenpro.solver_fit import fit
+from eigenpro.fit import fit_model
 import torch.nn.functional as F
-import eigenpro.utils.device as dev
+import eigenpro.device_manager as dev
 
 import eigenpro.data.utils as data_utils
 
@@ -45,7 +45,7 @@ def main():
         centers=Z, 
         device_manager=device_manager, dtype=dtype)
 
-    model = fit(
+    model = fit_model(
         model, 
         X_train, Y_train, X_test, Y_test,
         dtype=dtype, kernel=kernel_fn,

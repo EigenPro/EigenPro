@@ -7,16 +7,26 @@ import math
 import eigenpro.solver as sol
 import eigenpro.kernel_machine as km
 import eigenpro.kernels as k
-import eigenpro.preconditioners as pcd
+import eigenpro.preconditioner as pcd
 from eigenpro.utils.ops import gather
+import eigenpro.device_manager as dev
 
-from tests.instance import TestProblem
+from eigenpro.utils.test_instance import TestProblem
 
 class TestEigenPro(unittest.TestCase, TestProblem):
     
     def setUp(self):
         unittest.TestCase.__init__(self)
         TestProblem.__init__(self)
+
+        self.kernel_fn = lambda x,z: k.laplacian(x,z,bandwidth=1.)
+        self.device_manager = dev.DeviceManager(
+                [torch.device('cpu'),
+                # torch.device('cpu'),
+                ]
+            )
+
+        self.calculate_eigensystems()
 
         self.model = km.KernelMachine(
             self.kernel_fn,
