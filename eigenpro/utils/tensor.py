@@ -32,7 +32,8 @@ class DistributedTensor:
         device_id_of_index = torch.searchsorted(self.offsets, index, right=True) - 1
         unique_devices = torch.unique(device_id_of_index)
         if len(unique_devices)==1:
-            return self.parts[unique_devices][index - self.offsets[unique_devices]]
+            device = self.parts[unique_devices].device
+            return self.parts[unique_devices][(index - self.offsets[unique_devices]).to(device)]
         else:
             indices_per_part = [index[device_id_of_index==i]-o for i,o in enumerate(self.offsets)]
             return DistributedTensor([self.parts[i][idx] for i, idx in enumerate(indices_per_part)], base_device_idx=self.base_device_idx)
