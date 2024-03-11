@@ -62,7 +62,7 @@ class EigenProSolver:
                     ) 
                    ):
 
-                    self.projector.loader.dataset.data_y = self.iterator.grad_accumulation
+                    self.projector.loader.dataset.data_y = model.device_manager.gather(self.iterator.grad_accumulation)
                     
                     self.iterator.release_memory_for_projection()
 
@@ -79,4 +79,3 @@ class EigenProSolver:
                     self.iterator.reset()
 
         model.eval()
-

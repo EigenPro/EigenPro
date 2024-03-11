@@ -3,7 +3,7 @@ import torch
 from concurrent.futures import ThreadPoolExecutor
 import eigenpro.kernel_machine as km
 import eigenpro.preconditioner as pcd
-from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor
+from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor, RowDistributedTensor
 from eigenpro.utils.ops import distributed_matrix_slicing, distributed_kernel_evaluation
 from eigenpro.utils.types import assert_and_raise
 
@@ -19,7 +19,7 @@ def slice_distributed_matrix_till_capacity(mat: DistributedTensor, capacities: t
         out = [
                 executor.submit(torch.index_select, m, 0, torch.arange(c, dtype=torch.int64, device=m.device)) for m, c in zip(mat.parts, capacities)
             ]
-        mat3 = DistributedTensor([k.result() for k in out])
+        mat3 = DistributedTensor([k.result() for k in out], base_device_idx=mat.base_device_idx)
         del out
     return mat3
 
@@ -40,19 +40,25 @@ class LatentKernelMachine(km.KernelMachine):
 
     def reset_centers(self, centers=None):
         if self.is_multi_device:
-            self._centers = DistributedTensor([
-                        torch.zeros(c, self.n_inputs, dtype=self.dtype, device=d
-                        ) for c, d in zip(self.device_manager.chunk_sizes(self.size), self.device_manager.devices)
-                    ])
+            self._centers = RowDistributedTensor.zeros(
+                self.device_manager.chunk_sizes(self.size), 
+                self.n_inputs, 
+                self.dtype, 
+                self.device_manager.devices,
+                self.device_manager.base_device_idx
+            )
         else:
             self._centers = SingleDeviceTensor(torch.zeros(self.size, self.n_inputs, dtype=self.dtype, device=self.device_manager.base_device))
 
     def reset_weights(self, weights=None):
         if self.is_multi_device:
-            self._weights = DistributedTensor([
-                        torch.zeros(c, self.n_outputs, dtype=self.dtype, device=d
-                        ) for c, d in zip(self.device_manager.chunk_sizes(self.size), self.device_manager.devices)
-                    ])
+            self._weights = RowDistributedTensor.zeros(
+                self.device_manager.chunk_sizes(self.size), 
+                self.n_outputs, 
+                self.dtype, 
+                self.device_manager.devices,
+                self.device_manager.base_device_idx
+            )
         else:
             self._weights = SingleDeviceTensor(torch.zeros(self.size, self.n_outputs, dtype=self.dtype, device=self.device_manager.base_device))
 
@@ -159,10 +165,13 @@ class EigenProIterator:
             )
 
         if model.is_multi_device:
-            self.grad_accumulation = DistributedTensor([
-                        torch.zeros(c, model.n_outputs, dtype=model.dtype, device=d
-                        ) for c, d in zip(model.device_manager.chunk_sizes(model.size), model.device_manager.devices)
-                    ])
+            self.grad_accumulation = RowDistributedTensor.zeros(
+                model.device_manager.chunk_sizes(model.size), 
+                model.n_outputs, 
+                model.dtype, 
+                model.device_manager.devices,
+                model.device_manager.base_device_idx
+            )
         else:
             self.grad_accumulation = SingleDeviceTensor(torch.zeros(model.size, model.n_outputs, device=model.device_manager.base_device, dtype=model.dtype))
         
@@ -214,7 +223,7 @@ class EigenProIterator:
         assert model._train
 
         batch_x = model.device_manager.broadcast(batch_x)
-        batch_y = model.device_manager.to_base(batch_y)
+        batch_y = batch_y.to(model.device_manager.base_device)
 
         batch_p_base = model(batch_x)
         batch_p_temp = self.latent_model(batch_x)

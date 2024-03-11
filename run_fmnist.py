@@ -19,7 +19,7 @@ import eigenpro.data.utils as data_utils
 
 def main():
     n_train, n_test, model_size = 50000, 10000, 20000
-    epochs = 3
+    epochs = 1
     data_preconditioner_size, data_preconditioner_level = 2000, 100
     model_preconditioner_size, model_preconditioner_level = 2000, 100
 
@@ -29,7 +29,8 @@ def main():
     Z = X_train[torch.randperm(len(X_train))[:model_size]]
 
     kernel_fn = lambda x, z: kernels.laplacian(x, z, bandwidth=20.)
-    device_manager = dev.DeviceManager(use_gpu_if_available=True)
+    # device_manager = dev.DeviceManager([torch.device('cpu'), torch.device('cpu')], base_device_idx=1)
+    device_manager = dev.DeviceManager()
 
     # To run on CPU, dtype can not be `torch.float16` since
     # PyTorch does not support half-precision multiplication on CPU.

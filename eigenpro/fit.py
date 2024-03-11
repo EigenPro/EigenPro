@@ -39,12 +39,12 @@ def fit_model(model,
     nys_model_ids = model.device_offsets[base_device_idx] + BaseDeviceTensor( # make sure all model nystrom centers are on base device 
         torch.randperm(
             int(device_manager.chunk_sizes(model.size)[base_device_idx]), 
-            generator, device=base_device)[:model_preconditioner_size]
+            generator=generator, device=base_device, dtype=torch.int64)[:model_preconditioner_size]
         )
-
+    # print(nys_model_ids, nys_model_ids.dtype)
     nys_model = model.centers[nys_model_ids]
 
-    nys_data_ids = torch.randperm(len(X), generator=generator, device=base_device)[:data_preconditioner_size]
+    nys_data_ids = torch.randperm(len(X), generator=generator, device=base_device, dtype=torch.int64)[:data_preconditioner_size]
     nys_data = BaseDeviceTensor(X[nys_data_ids.to(X.device), :].to(base_device))
 
     data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, data_preconditioner_level)

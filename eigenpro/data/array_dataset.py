@@ -34,13 +34,13 @@ class ArrayDataset(torch_data.Dataset):
 
             self.data_x = self.data_x[id_start:id_end]
             self.data_y = self.data_y[id_start:id_end]
-            self.ids = list(range(id_start, id_end))
+            self.ids = torch.arange(id_start, id_end)
         else:
-            self.ids = list(range(len(data_x)))
+            self.ids = torch.arange(len(data_x))
 
     def __len__(self):
         return len(self.data_x)
 
     def __getitem__(self, index):
-        return self.data_x[index], self.data_y[index], torch.tensor(
+        return self.data_x[index], self.data_y[index], torch.as_tensor(
             self.ids[index], dtype=torch.int64)

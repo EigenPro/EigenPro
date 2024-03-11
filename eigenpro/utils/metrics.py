@@ -19,7 +19,7 @@ def get_performance(model, X, Y, batch_size=1024):
             batch_X, batch_Y = device_manager.broadcast(batch_X), batch_Y.to(device_manager.base_device)
 
             # Forward pass
-            Y_hat = device_manager.gather(model(batch_X))
+            Y_hat = device_manager.reduce_add(model(batch_X))
 
             # Calculate loss and accuracy
             loss = torch.norm(Y_hat - batch_Y)**2 / batch_Y.size(0)

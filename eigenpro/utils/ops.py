@@ -29,7 +29,7 @@ def distributed_kernel_evaluation(kernel_fn, X: DistributedTensor, centers: Dist
         out = [
                 executor.submit(kernel_fn, x, z) for x, z in zip(X.parts, centers.parts)
             ]
-        kmat = DistributedTensor([k.result() for k in out])
+        kmat = DistributedTensor([k.result() for k in out], base_device_idx=centers.base_device_idx)
         del out
     return kmat
 
@@ -38,7 +38,7 @@ def distributed_matrix_multiply(mat1: DistributedTensor, mat2: DistributedTensor
         out = [
                 executor.submit(torch.matmul, m1, m2) for m1, m2 in zip(mat1.parts, mat2.parts)
             ]
-        mat3 = DistributedTensor([k.result() for k in out])
+        mat3 = DistributedTensor([k.result() for k in out], base_device_idx=mat2.base_device_idx)
         del out
     return mat3
 
@@ -47,6 +47,6 @@ def distributed_matrix_slicing(mat: DistributedTensor, idx: DistributedTensor, o
         out = [
                 executor.submit(torch.index_select, m, 0, i-o) for m, i, o in zip(mat.parts, idx.parts, offsets)
             ]
-        mat3 = DistributedTensor([k.result() for k in out])
+        mat3 = DistributedTensor([k.result() for k in out], base_device_idx=mat.base_device_idx)
         del out
     return mat3

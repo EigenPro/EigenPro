@@ -1,5 +1,5 @@
 from typing import Callable, List, Optional, Union
-from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor, BaseDeviceTensor
+from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor, BaseDeviceTensor, RowDistributedTensor, BroadcastTensor
 from eigenpro.utils.types import assert_and_raise
 from eigenpro.utils.ops import (
         distributed_kernel_evaluation,
@@ -7,7 +7,6 @@ from eigenpro.utils.ops import (
         distributed_matrix_slicing
     )
 import torch
-
 
 
 class KernelMachine:
@@ -56,8 +55,11 @@ class KernelMachine:
         self._train = False
 
     # remap
-    def __call__(self, *args):
-        return self.forward(*args)
+    def __call__(self, *args, **kwargs):
+        if self.is_multi_device:
+            return self.forward_distributed(*args, **kwargs)
+        else:
+            return self.forward(*args, **kwargs)
 
     @property
     def kernel_fn(self) -> Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ]:
@@ -90,26 +92,32 @@ class KernelMachine:
     @weights.deleter
     def weights(self):
         del self._weights
+
+
+    def init_zero_weights(self):
+        if self.is_multi_device:
+            self.weights = RowDistributedTensor.zeros(
+                self.device_manager.chunk_sizes(self.size),
+                self.n_outputs,
+                self.dtype,
+                self.device_manager.devices,
+                self.device_manager.base_device_idx
+            )
+        else:
+            self.weights = BaseDeviceTensor(torch.zeros(
+                self.size, 
+                self.n_outputs, 
+                dtype=self.dtype, 
+                device=self.device_manager.base_device)
+            )
     
     def init_weights(self, weights):
         if weights is None:
-            if self.is_multi_device:
-                self.weights = DistributedTensor([
-                        torch.zeros(c, self.n_outputs, dtype=self.dtype, device=d
-                        ) for c, d in zip(self.device_manager.chunk_sizes(self.size), self.device_manager.devices)
-                    ])
-            else:
-                self.weights = SingleDeviceTensor(
-                    torch.zeros(
-                        self.size, self.n_outputs, 
-                        dtype=self.dtype, 
-                        device=self.device_manager.base_device))
+            self.init_zero_weights()
         elif isinstance(weights, torch.Tensor):
             self.weights = self.device_manager.scatter(weights)
-        elif isinstance(weights, DistributedTensor):
-            self.weights = weights
         else:
-            raise ValueError
+            raise TypeError("weights initializer expects `None` or `torch.Tensor`")
 
     def init_centers(self, centers):
         assert_and_raise(centers, torch.Tensor)
@@ -120,14 +128,11 @@ class KernelMachine:
         """Return the centers."""
         return self._centers # of type `DistributedTensor`
 
-
     def forward(self, 
             x: Union[torch.Tensor, SingleDeviceTensor], 
             cache_columns_by_idx: Union[torch.Tensor, SingleDeviceTensor] = None):
         """To add compatibility with other PyTorch models"""
-        if self.is_multi_device:
-            return self.forward_distributed(x, cache_columns_by_idx)
-        # assert_and_raise(x, SingleDeviceTensor)
+        assert_and_raise(x, SingleDeviceTensor)
         assert_and_raise(self.centers, SingleDeviceTensor)
         assert_and_raise(self.weights, SingleDeviceTensor)
         kmat = self.kernel_fn(x, self.centers)
@@ -138,8 +143,8 @@ class KernelMachine:
         return preds
 
     def forward_distributed(self, x, cache_columns_by_idx: DistributedTensor = None):
-        assert_and_raise(x, DistributedTensor)
-        assert_and_raise(self.centers, DistributedTensor)
+        assert_and_raise(x, BroadcastTensor)
+        assert_and_raise(self.centers, RowDistributedTensor)
         # if cache_columns_by_idx is not None:
         #     assert_and_raise(cache_columns_by_idx, DistributedTensor)
         assert x.num_parts==self.centers.num_parts
@@ -151,7 +156,9 @@ class KernelMachine:
             elif isinstance(cache_columns_by_idx, DistributedTensor):
                 self._kmat_batch_centers_cached = distributed_matrix_slicing(kmat, cache_columns_by_idx)
             elif isinstance(cache_columns_by_idx, BaseDeviceTensor):
-                self._kmat_batch_centers_cached = kmat.parts[self.device_manager.base_device_idx][:, cache_columns_by_idx]
+                self._kmat_batch_centers_cached = kmat.parts[
+                    self.device_manager.base_device_idx][
+                        :, cache_columns_by_idx-self.centers.offsets[self.device_manager.base_device_idx]]
         del kmat
         return preds
 
