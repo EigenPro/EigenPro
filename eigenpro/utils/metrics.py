@@ -16,7 +16,7 @@ def get_performance(model, X, Y, batch_size=1024):
     with torch.no_grad():
         for batch_X, batch_Y in dataloader:
             # Move batch to GPU
-            batch_X, batch_Y = device_manager.broadcast(batch_X), batch_Y.to(device_manager.base_device)
+            batch_X, batch_Y = device_manager.broadcast(batch_X.to(model.dtype)), batch_Y.to(model.dtype).to(device_manager.base_device)
 
             # Forward pass
             Y_hat = device_manager.reduce_add(model(batch_X))

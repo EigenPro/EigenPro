@@ -23,7 +23,7 @@ def update_weights_by_index(model, other_tensor, indices, alpha):
         raise ValueError("make sure the input `model` is trainable. Try again after model.train()")
     if model.is_multi_device:
         device_idx = get_device_id_by_idx(model.weights, indices)
-        indices_for_device = indices - model.weights.offsets[device_idx]
+        indices_for_device = indices - int(model.weights.offsets[device_idx])
         model_weights_part = model.weights.parts[device_idx]
         model_weights_part[indices_for_device] += alpha*other_tensor.to(model_weights_part.device)
     else:
@@ -32,11 +32,16 @@ def update_weights_by_index(model, other_tensor, indices, alpha):
         model.weights[indices] += other_tensor*alpha
 
 def get_device_id_by_idx(distributed_tensor: DistributedTensor, index: Union[int, SingleDeviceTensor]):
-    device_idx = torch.searchsorted(distributed_tensor.offsets, index, right=True) - 1
+    index_ = index if isinstance(index, int) else index.to(distributed_tensor.parts[distributed_tensor.base_device_idx].device)
+    device_idx = torch.searchsorted(distributed_tensor.offsets, index_, right=True) - 1
     unique_device = torch.unique(device_idx)
     assert len(unique_device)==1
     return unique_device
 
+
+# class ProjectionDataset(array_dataset.ArrayDataset):
+
+#     def __init__(se)
 
 class EigenProProjector:
     """EigenPro optimizer for classical kernel models.

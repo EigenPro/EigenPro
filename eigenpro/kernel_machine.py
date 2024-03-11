@@ -4,7 +4,7 @@ from eigenpro.utils.types import assert_and_raise
 from eigenpro.utils.ops import (
         distributed_kernel_evaluation,
         distributed_matrix_multiply,
-        distributed_matrix_slicing
+        # distributed_matrix_slicing
     )
 import torch
 
@@ -121,7 +121,7 @@ class KernelMachine:
 
     def init_centers(self, centers):
         assert_and_raise(centers, torch.Tensor)
-        self._centers = self.device_manager.scatter(centers)
+        self._centers = self.device_manager.scatter(centers.to(self.dtype))
 
     @property
     def centers(self) -> DistributedTensor:
@@ -153,8 +153,8 @@ class KernelMachine:
         if self._train:
             if cache_columns_by_idx is None:
                 self._kmat_batch_centers_cached = kmat 
-            elif isinstance(cache_columns_by_idx, DistributedTensor):
-                self._kmat_batch_centers_cached = distributed_matrix_slicing(kmat, cache_columns_by_idx)
+            # elif isinstance(cache_columns_by_idx, DistributedTensor):
+            #     self._kmat_batch_centers_cached = distributed_matrix_slicing(kmat, cache_columns_by_idx)
             elif isinstance(cache_columns_by_idx, BaseDeviceTensor):
                 self._kmat_batch_centers_cached = kmat.parts[
                     self.device_manager.base_device_idx][

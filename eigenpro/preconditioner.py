@@ -62,3 +62,15 @@ class Preconditioner:
     def scaled_learning_rate(self, batch_size: int) -> float:
         """Computes and returns the scaled learning rate."""
         return float(2 / batch_size * self.learning_rate(batch_size))
+
+    def change_type(self, dtype=torch.float32):
+        """Converting to half precision
+        Args:
+            type (torch.type): it is either torch.float32 or torch.float16
+        Returns:
+            None
+        Raises:
+            None: This method is not expected to raise any exceptions.
+        """
+        self.normalized_eigenvectors = self.normalized_eigenvectors.to(dtype)
+        self._centers = self.centers.to(dtype)

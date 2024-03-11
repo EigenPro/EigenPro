@@ -19,22 +19,27 @@ class DistributedTensor:
     def __init__(self, tensor_list: List[SingleDeviceTensor], base_device_idx: int):
         self._list = [BaseDeviceTensor(t) if i==base_device_idx else SingleDeviceTensor(t) for i,t in enumerate(tensor_list)]
         self._base_device_idx = base_device_idx
-        self._base_device = 
         self._lengths = torch.as_tensor([len(tensor) for tensor in tensor_list], dtype=torch.int64, device=self.base_device)
-        # print('init:', torch.cumsum(torch.as_tensor(self._lengths), 0, dtype=torch.int64).dtype, self._lengths.dtype)
+        # print('init:', self._lengths.device)
 
     def __len__(self):
         return torch.sum(self.lengths, dtype=torch.int64)
 
     def __getitem__(self, index):
-        device_id_of_index = torch.searchsorted(self.offsets, index.to(self.base_device), right=True) - 1
+        index_ = index.to(self.base_device) if isinstance(index, torch.Tensor) else index
+        device_id_of_index = torch.searchsorted(self.offsets, index_, right=True) - 1
         unique_devices = torch.unique(device_id_of_index)
         if len(unique_devices)==1:
             part_device = self.parts[unique_devices].device
-            return self.parts[unique_devices][(index - self.offsets[unique_devices]).to(part_device)]
+            part = self.parts[unique_devices]
+            part_index = index_ - self.offsets[unique_devices]
+            return part[part_index.to(part_device)]
         else:
             indices_per_part = [index[device_id_of_index==i]-o for i,o in enumerate(self.offsets)]
             return DistributedTensor([self.parts[i][idx] for i, idx in enumerate(indices_per_part)], base_device_idx=self.base_device_idx)
+
+    def tolist(self):
+        return self._list
 
     @property
     def offsets(self):
@@ -73,10 +78,6 @@ class DistributedTensor:
         assert_and_raise(tensor, DistributedTensor)
         return DistributedTensor([part - tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
 
-    def __matmul__(self, tensor):
-        assert_and_raise(tensor, DistributedTensor)
-        return DistributedTensor([part @ tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
-
     def __mul__(self, scalar):
         assert_and_raise(scalar, float)
         return DistributedTensor([part * scalar for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
@@ -93,6 +94,12 @@ class DistributedTensor:
             else f'  {i}: ' + str(p) + '\n')
         return string
 
+
+    def __matmul__(self, tensor):
+        # TO DO: move this only to ColumnDistributedTensor
+        assert_and_raise(tensor, DistributedTensor)
+        return DistributedTensor([part @ tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
+
     @property
     def shape(self):
         return [part.shape for part in self.parts]
@@ -102,7 +109,23 @@ class DistributedTensor:
         return DistributedTensor([part.T for part in self.parts], base_device_idx=self.base_device_idx)
 
 
+    
+
+class BroadcastTensor(DistributedTensor):
+    def at_device(self, device_idx):
+        return self.parts[device_idx]
+
+    def __repr__(self):
+        return "BroadcastTensor\n" + str(self.parts[0]) 
+
+
 class RowDistributedTensor(DistributedTensor):
+
+    def __matmul__(self, tensor: BroadcastTensor):
+        # TO DO: move this only to ColumnDistributedTensor
+        assert_and_raise(tensor, DistributedTensor)
+        return RowDistributedTensor([part @ tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
+
 
     def zeros(row_sizes: Union[List, torch.Tensor], 
             num_columns: int, 
@@ -113,21 +136,19 @@ class RowDistributedTensor(DistributedTensor):
                         torch.zeros(r, num_columns, dtype=dtype, device=d)
                         for r, d in zip(row_sizes, device_list)
                     ], base_device_idx=base_device_idx)
+
+
+class ColumnDistributedTensor(DistributedTensor):
+
+    def __matmul__(self, tensor: RowDistributedTensor):
+        # TO DO: move this only to ColumnDistributedTensor
+        assert_and_raise(tensor, DistributedTensor)
+        return DistributedTensor([part @ tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
     
 
 class SummableDistributedTensor(DistributedTensor):
     pass
 
-
-class BroadcastTensor(DistributedTensor):
-    def at_device(self, device_idx):
-        return self.parts[device_idx]
-
-    def __repr__(self):
-        return "BroadcastTensor\n" + str(self.parts[0]) 
-
-class ScatteredTensor(DistributedTensor):
-    pass
 
 
 if __name__ == "__main__":

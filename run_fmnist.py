@@ -18,8 +18,8 @@ import eigenpro.device_manager as dev
 import eigenpro.data.utils as data_utils
 
 def main():
-    n_train, n_test, model_size = 50000, 10000, 20000
-    epochs = 1
+    n_train, n_test, model_size = 50000, 100, 20000
+    epochs = 3
     data_preconditioner_size, data_preconditioner_level = 2000, 100
     model_preconditioner_size, model_preconditioner_level = 2000, 100
 
@@ -37,7 +37,7 @@ def main():
     if device_manager.devices[0].type == 'cpu':
         dtype = torch.float32
     elif device_manager.devices[0].type == 'cuda':
-        dtype = torch.float16
+        dtype = torch.float32
     else:
         raise ValueError(f"Unknown device type: {device.base_device.type}")
 

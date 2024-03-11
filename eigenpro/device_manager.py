@@ -1,11 +1,11 @@
 import torch
 import math
-# import torch.cuda.comm as torch_comm
-import eigenpro.utils.ops as torch_comm
+import torch.cuda.comm as torch_comm
+# import eigenpro.utils.ops as torch_comm
 from typing import List, Union
 from termcolor import colored
 from eigenpro.utils.tensor import (
-        DistributedTensor, BroadcastTensor, RowDistributedTensor,
+        BroadcastTensor, RowDistributedTensor, SummableDistributedTensor,
         SingleDeviceTensor, BaseDeviceTensor, 
     )
 
@@ -59,7 +59,7 @@ class DeviceManager:
         if self.is_multi_device:
             return BroadcastTensor(torch_comm.broadcast(tensor, self.devices), base_device_idx=self.base_device_idx)
         else:
-            return SingleDeviceTensor(tensor)
+            return BaseDeviceTensor(tensor.to(self.base_device))
 
     def scatter(self, tensor: SingleDeviceTensor):
         assert (isinstance(tensor, torch.Tensor) or isinstance(tensor, SingleDeviceTensor))
@@ -67,21 +67,21 @@ class DeviceManager:
             return RowDistributedTensor(
                 torch_comm.scatter(
                     tensor, devices=self.devices, 
-                    chunk_sizes=self.chunk_sizes(len(tensor))
+                    chunk_sizes=self.chunk_sizes(len(tensor)).tolist()
                     ),
                 base_device_idx=self.base_device_idx
                 )
         else:
-            return SingleDeviceTensor(tensor)
+            return BaseDeviceTensor(tensor.to(self.base_device))
 
-    def reduce_add(self, addable_tensor: Union[SingleDeviceTensor, DistributedTensor]) -> BaseDeviceTensor:
+    def reduce_add(self, addable_tensor: Union[SingleDeviceTensor, SummableDistributedTensor]) -> BaseDeviceTensor:
         if self.is_multi_device:
-            return BaseDeviceTensor(torch_comm.reduce_add(addable_tensor, destination=self.base_device))
+            return BaseDeviceTensor(torch_comm.reduce_add(addable_tensor.tolist(), destination=self.base_device))
         else:
-            return BaseDeviceTensor(addable_tensor)
+            return BaseDeviceTensor(addable_tensor.to(self.base_device))
 
-    def gather(self, gatherable_tensor: Union[SingleDeviceTensor, DistributedTensor]) -> SingleDeviceTensor:
+    def gather(self, gatherable_tensor: Union[SingleDeviceTensor, RowDistributedTensor]) -> SingleDeviceTensor:
         if self.is_multi_device:
-            return SingleDeviceTensor(torch_comm.gather(gatherable_tensor, destination=self.base_device))
+            return BaseDeviceTensor(torch_comm.gather(gatherable_tensor.tolist(), destination=self.base_device))
         else:
-            return SingleDeviceTensor(gatherable_tensor)
+            return BaseDeviceTensor(gatherable_tensor)

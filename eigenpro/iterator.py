@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import eigenpro.kernel_machine as km
 import eigenpro.preconditioner as pcd
 from eigenpro.utils.tensor import DistributedTensor, SingleDeviceTensor, RowDistributedTensor
-from eigenpro.utils.ops import distributed_matrix_slicing, distributed_kernel_evaluation
+from eigenpro.utils.ops import distributed_kernel_evaluation
 from eigenpro.utils.types import assert_and_raise
 
 
@@ -65,7 +65,6 @@ class LatentKernelMachine(km.KernelMachine):
     @property
     def centers(self):
         if self.is_multi_device:
-            # print(self._centers.shape, self._centers._offsets, self._centers._offsets + self.used_capacity, self._centers.lengths)
             return slice_distributed_matrix_till_capacity(self._centers, self.used_capacity)
         else:
             return self._centers[:self.used_capacity]
@@ -106,15 +105,13 @@ class LatentKernelMachine(km.KernelMachine):
         """Adds centers and weights to the kernel machine.
         """
 
-        if (self.used_capacity.sum() + len(new_centers.at_device(self.device_manager.base_device_idx)) > self.size):
-            print("error")
-            raise ValueError(f"Running out of capacity for new centers: ", self.used_capacity.sum(), new_centers.lengths[0], self.size)
-
         if self.is_multi_device:
+            if (self.used_capacity.sum() + len(new_centers.at_device(self.device_manager.base_device_idx)) > self.size):
+                print("error")
+                raise ValueError(f"Running out of capacity for new centers: ", self.used_capacity.sum(), new_centers.lengths[0], self.size)
             chunk_sizes = torch.as_tensor(self.device_manager.chunk_sizes(new_centers.lengths[0]))
             chunk_ends = torch.cumsum(chunk_sizes, 0, dtype=torch.int64)
             chunk_starts = chunk_ends - chunk_sizes[0]
-            # print(self.used_capacity, new_centers.lengths, new_weights.lengths)
             for i in range(len(self.device_manager.devices)):
                 self._centers.parts[i][self.used_capacity[i] : self.used_capacity[i] + chunk_sizes[i]] = new_centers.parts[i][chunk_starts[i]:chunk_ends[i]]
                 self._weights.parts[i][self.used_capacity[i] : self.used_capacity[i] + chunk_sizes[i]] = new_weights.parts[i][chunk_starts[i]:chunk_ends[i]]
@@ -122,6 +119,9 @@ class LatentKernelMachine(km.KernelMachine):
             self.used_capacity += chunk_sizes
 
         else:
+            if (self.used_capacity + len(new_centers) > self.size):
+                print("error")
+                raise ValueError(f"Running out of capacity for new centers: ", self.used_capacity.sum(), len(new_centers), self.size)
             self._centers[self.used_capacity : self.used_capacity + len(new_centers),:] = new_centers
             self._weights[self.used_capacity : self.used_capacity + len(new_weights),:] = new_weights
             self.used_capacity += len(new_centers)
@@ -179,9 +179,9 @@ class EigenProIterator:
         if model.is_multi_device:
             self.k_centers_nystroms_mult_normalized_eigenvectors = distributed_kernel_evaluation(
                         model.kernel_fn,
-                        model.centers,
                         model.device_manager.broadcast(self.preconditioner.centers),
-                    ) @ model.device_manager.broadcast(self.preconditioner.normalized_eigenvectors)
+                        model.centers,
+                    ).T @ model.device_manager.broadcast(self.preconditioner.normalized_eigenvectors)
         else:
             self.k_centers_nystroms_mult_normalized_eigenvectors = model.kernel_fn(
                     model.centers, self.preconditioner.centers
@@ -222,8 +222,8 @@ class EigenProIterator:
         """
         assert model._train
 
-        batch_x = model.device_manager.broadcast(batch_x)
-        batch_y = batch_y.to(model.device_manager.base_device)
+        batch_x = model.device_manager.broadcast(batch_x.to(model.dtype))
+        batch_y = batch_y.to(model.dtype).to(model.device_manager.base_device)
 
         batch_p_base = model(batch_x)
         batch_p_temp = self.latent_model(batch_x)
