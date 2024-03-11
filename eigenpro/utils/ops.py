@@ -24,10 +24,10 @@ def reduce_add(distributed_tensor, destination=None):
 ##########################################################################
 
 
-def distributed_kernel_evaluation(kernel_fn, X: BroadcastTensor, centers: RowDistributedTensor):
+def distributed_kernel_evaluation(kernel_fn, data: BroadcastTensor, centers: RowDistributedTensor):
     with ThreadPoolExecutor() as executor:
         out = [
-                executor.submit(kernel_fn, x, z) for x, z in zip(X.parts, centers.parts)
+                executor.submit(kernel_fn, x, z) for x, z in zip(data.parts, centers.parts)
             ]
         kmat = ColumnDistributedTensor([k.result() for k in out], base_device_idx=centers.base_device_idx)
         del out

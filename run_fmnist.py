@@ -18,8 +18,8 @@ import eigenpro.device_manager as dev
 import eigenpro.data.utils as data_utils
 
 def main():
-    n_train, n_test, model_size = 50000, 100, 20000
-    epochs = 3
+    n_train, n_test, model_size = 10000, 100, 5000
+    epochs = 1
     data_preconditioner_size, data_preconditioner_level = 2000, 100
     model_preconditioner_size, model_preconditioner_level = 2000, 100
 

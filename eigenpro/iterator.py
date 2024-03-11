@@ -14,12 +14,12 @@ import torch
 import eigenpro.utils.fmm as fmm
 
 
-def slice_distributed_matrix_till_capacity(mat: DistributedTensor, capacities: torch.Tensor):
+def slice_distributed_matrix_till_capacity(mat: RowDistributedTensor, capacities: torch.Tensor):
     with ThreadPoolExecutor() as executor:
         out = [
                 executor.submit(torch.index_select, m, 0, torch.arange(c, dtype=torch.int64, device=m.device)) for m, c in zip(mat.parts, capacities)
             ]
-        mat3 = DistributedTensor([k.result() for k in out], base_device_idx=mat.base_device_idx)
+        mat3 = RowDistributedTensor([k.result() for k in out], base_device_idx=mat.base_device_idx)
         del out
     return mat3
 
@@ -177,11 +177,12 @@ class EigenProIterator:
         
         model.eval()
         if model.is_multi_device:
-            self.k_centers_nystroms_mult_normalized_eigenvectors = distributed_kernel_evaluation(
+            kmat = distributed_kernel_evaluation(
                         model.kernel_fn,
                         model.device_manager.broadcast(self.preconditioner.centers),
                         model.centers,
-                    ).T @ model.device_manager.broadcast(self.preconditioner.normalized_eigenvectors)
+                    )
+            self.k_centers_nystroms_mult_normalized_eigenvectors = kmat.T @ model.device_manager.broadcast(self.preconditioner.normalized_eigenvectors)
         else:
             self.k_centers_nystroms_mult_normalized_eigenvectors = model.kernel_fn(
                     model.centers, self.preconditioner.centers

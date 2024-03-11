@@ -94,21 +94,13 @@ class DistributedTensor:
             else f'  {i}: ' + str(p) + '\n')
         return string
 
-
-    def __matmul__(self, tensor):
-        # TO DO: move this only to ColumnDistributedTensor
-        assert_and_raise(tensor, DistributedTensor)
-        return DistributedTensor([part @ tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
-
     @property
     def shape(self):
         return [part.shape for part in self.parts]
 
-    @property
-    def T(self):
-        return DistributedTensor([part.T for part in self.parts], base_device_idx=self.base_device_idx)
 
-
+class SummableDistributedTensor(DistributedTensor):
+    pass
     
 
 class BroadcastTensor(DistributedTensor):
@@ -123,9 +115,12 @@ class RowDistributedTensor(DistributedTensor):
 
     def __matmul__(self, tensor: BroadcastTensor):
         # TO DO: move this only to ColumnDistributedTensor
-        assert_and_raise(tensor, DistributedTensor)
+        assert_and_raise(tensor, BroadcastTensor)
         return RowDistributedTensor([part @ tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
 
+    @property
+    def T(self):
+        return ColumnDistributedTensor([part.T for part in self.parts], base_device_idx=self.base_device_idx)
 
     def zeros(row_sizes: Union[List, torch.Tensor], 
             num_columns: int, 
@@ -142,13 +137,12 @@ class ColumnDistributedTensor(DistributedTensor):
 
     def __matmul__(self, tensor: RowDistributedTensor):
         # TO DO: move this only to ColumnDistributedTensor
-        assert_and_raise(tensor, DistributedTensor)
-        return DistributedTensor([part @ tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
+        assert_and_raise(tensor, RowDistributedTensor)
+        return SummableDistributedTensor([part @ tensor.parts[i] for i, part in enumerate(self.parts)], base_device_idx=self.base_device_idx)
     
-
-class SummableDistributedTensor(DistributedTensor):
-    pass
-
+    @property
+    def T(self):
+        return RowDistributedTensor([part.T for part in self.parts], base_device_idx=self.base_device_idx)
 
 
 if __name__ == "__main__":
