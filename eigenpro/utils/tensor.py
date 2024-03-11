@@ -19,29 +19,26 @@ class DistributedTensor:
     def __init__(self, tensor_list: List[SingleDeviceTensor], base_device_idx: int):
         self._list = [BaseDeviceTensor(t) if i==base_device_idx else SingleDeviceTensor(t) for i,t in enumerate(tensor_list)]
         self._base_device_idx = base_device_idx
-        
-        self._lengths = torch.as_tensor([len(tensor) for tensor in tensor_list], dtype=torch.int64, device=self.parts[base_device_idx].device)
-        self._total_length = torch.sum(self._lengths, dtype=torch.int64)
-        self._offsets = torch.cumsum(torch.as_tensor(self._lengths), 0, dtype=torch.int64) - self._lengths[0]
+        self._base_device = 
+        self._lengths = torch.as_tensor([len(tensor) for tensor in tensor_list], dtype=torch.int64, device=self.base_device)
         # print('init:', torch.cumsum(torch.as_tensor(self._lengths), 0, dtype=torch.int64).dtype, self._lengths.dtype)
 
     def __len__(self):
-        return self._total_length
+        return torch.sum(self.lengths, dtype=torch.int64)
 
     def __getitem__(self, index):
-        device_id_of_index = torch.searchsorted(self.offsets, index, right=True) - 1
+        device_id_of_index = torch.searchsorted(self.offsets, index.to(self.base_device), right=True) - 1
         unique_devices = torch.unique(device_id_of_index)
         if len(unique_devices)==1:
-            device = self.parts[unique_devices].device
-            return self.parts[unique_devices][(index - self.offsets[unique_devices]).to(device)]
+            part_device = self.parts[unique_devices].device
+            return self.parts[unique_devices][(index - self.offsets[unique_devices]).to(part_device)]
         else:
             indices_per_part = [index[device_id_of_index==i]-o for i,o in enumerate(self.offsets)]
             return DistributedTensor([self.parts[i][idx] for i, idx in enumerate(indices_per_part)], base_device_idx=self.base_device_idx)
 
-
     @property
     def offsets(self):
-        return self._offsets
+        return torch.cumsum(torch.as_tensor(self.lengths), 0, dtype=torch.int64) - self.lengths[0]
 
     @property
     def dtype(self):
@@ -52,16 +49,16 @@ class DistributedTensor:
         return self._lengths
 
     @property
-    def total_length(self):
-        return self._total_length
-
-    @property
     def num_parts(self):
         return len(self._list)
 
     @property
     def base_device_idx(self):
         return self._base_device_idx
+
+    @property
+    def base_device(self):
+        return self.parts[self.base_device_idx].device
 
     @property
     def parts(self):
