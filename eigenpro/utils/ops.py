@@ -1,72 +1,52 @@
 from typing import List, Callable
 from concurrent.futures import ThreadPoolExecutor
 import torch
+from eigenpro.utils.tensor import RowDistributedTensor, BroadcastTensor, ColumnDistributedTensor, SummableDistributedTensor
 
 
-class ParallelMatrixOperator:
-    """Parallel computations for matrix and kernel operations."""
+############# CPU OPS to mimic torch.comm.<methodname> ####################
 
-    @staticmethod
-    def compute_kernel_matrix(
-            kernel: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-            batch_x: List[torch.Tensor],
-            chunks_z: List[torch.Tensor]) -> List[torch.Tensor]:
-        """Evaluates a kernel function in parallel.
+def gather(distributed_tensor, destination=None):
+    if isinstance(distributed_tensor, RowDistributedTensor):
+        return torch.cat(distributed_tensor.parts)
+    else:
+        return distributed_tensor
 
-        Args:
-            kernel: The kernel function to evaluate.
-            batch_x: List of input tensors.
-            chunks_z: List of chunk tensors.
+def scatter(tensor, chunk_sizes, devices=None):
+    return torch.split(tensor, split_size_or_sections=chunk_sizes.tolist())
 
-        Returns:
-            List of computed kernel matrices.
-        """
-        with ThreadPoolExecutor() as executor:
-            kernel_matrices = [
-                executor.submit(kernel, inputs[0], inputs[1])
-                for inputs in zip(batch_x, chunks_z)
+def broadcast(tensor, devices):
+    return [tensor for _ in devices]
+
+def reduce_add(distributed_tensor, destination=None):
+    return sum(distributed_tensor.parts)
+
+##########################################################################
+
+
+def distributed_kernel_evaluation(kernel_fn, data: BroadcastTensor, centers: RowDistributedTensor):
+    with ThreadPoolExecutor() as executor:
+        out = [
+                executor.submit(kernel_fn, x, z) for x, z in zip(data.parts, centers.parts)
             ]
+        kmat = ColumnDistributedTensor([k.result() for k in out], base_device_idx=centers.base_device_idx)
+        del out
+    return kmat
 
-        return [job.result() for job in kernel_matrices]
-
-    @staticmethod
-    def mat_vec_mul(matrix: torch.Tensor,
-                   vector: torch.Tensor,
-                   device: str) -> torch.Tensor:
-        """Multiplies a matrix with a vector.
-
-        Args:
-            matrix: Input matrix.
-            vector: Input vector.
-            device: Device for the output tensor.
-
-        Returns:
-            Result of the multiplication.
-        """
-        return (matrix @ vector).to(device)
-
-    @staticmethod
-    def parallel_mat_vec_mul(
-            matrix_list: List[torch.Tensor],
-            vector_list: List[torch.Tensor],
-            device: str) -> torch.Tensor:
-        """Performs matrix-vector multiplication in parallel.
-
-        Args:
-            matrix_list: List of input matrices.
-            vector_list: List of input vectors.
-            device: Device for the output tensor.
-
-        Returns:
-            Sum of the multiplication results.
-        """
-        with ThreadPoolExecutor() as executor:
-            products = [
-                executor.submit(
-                    ParallelMatrixOperator.mat_vec_mul,
-                    inputs[0], inputs[1], device
-                )
-                for inputs in zip(matrix_list, vector_list)
+def distributed_matrix_multiply(mat1: ColumnDistributedTensor, mat2: RowDistributedTensor):
+    with ThreadPoolExecutor() as executor:
+        out = [
+                executor.submit(torch.matmul, m1, m2) for m1, m2 in zip(mat1.parts, mat2.parts)
             ]
+        mat3 = SummableDistributedTensor([k.result() for k in out], base_device_idx=mat2.base_device_idx)
+        del out
+    return mat3
 
-        return sum(job.result() for job in products)
+# def distributed_matrix_slicing(mat: DistributedTensor, idx: DistributedTensor, offsets: torch.Tensor):
+#     with ThreadPoolExecutor() as executor:
+#         out = [
+#                 executor.submit(torch.index_select, m, 0, i-o) for m, i, o in zip(mat.parts, idx.parts, offsets)
+#             ]
+#         mat3 = DistributedTensor([k.result() for k in out], base_device_idx=mat.base_device_idx)
+#         del out
+#     return mat3
