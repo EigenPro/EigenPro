@@ -7,7 +7,7 @@ def get_performance(model, X, Y, batch_size=1024):
     # Ensure model is in evaluation mode
     # Convert X and Y to PyTorch datasets and use DataLoader for batch processing
     dataset = torch.utils.data.TensorDataset(X, Y)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=16)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1)
 
     total_loss = 0
     total_accuracy = 0

@@ -83,13 +83,12 @@ class PreallocatedKernelMachine(km.KernelMachine):
     """Return the weights."""
     return self._weights[:self.size]
 
-  def forward(self, x: torch.Tensor, projection: bool=False,
+  def forward(self, x: torch.Tensor,
               train=True) -> torch.Tensor:
     """Forward pass for the kernel machine.
 
     Args:
         x (torch.Tensor): input tensor of shape [n_samples, n_features].
-        projection(bool): Projection mode, updating projection weights
         train(bool): Train mode, storing kernel_mat[:, :self.original_size].T
           in cache
 
@@ -100,33 +99,28 @@ class PreallocatedKernelMachine(km.KernelMachine):
     x = x.to(self.dtype)
     x = x.to(self.device)
 
-    if projection:
-      centers = self._centers[:self.original_size, :]
-      weights = self._weights[:self.original_size, :]
-    else:
-      centers = self._centers[:self.used_capacity, :]
-      weights = self._weights[:self.used_capacity, :]
+
+    centers = self._centers[:self.used_capacity, :]
+    weights = self._weights[:self.used_capacity, :]
 
     kernel_mat = self._kernel_fn(x, centers[:self.original_size])
 
-    if projection:
-      predictions = kernel_mat @ self.weights_project
-    else:
-      poriginal = kernel_mat[:, :self.original_size
-                             ] @ weights[:self.original_size, :]
-      if centers.shape[0] > self.original_size:
-        prest = fmm.KmV(
-            self._kernel_fn, x, 
-            centers[self.original_size:],
-            weights[self.original_size:],
-            col_chunk_size=2**16
-        )
-      else:
-        prest = 0
-      predictions = poriginal + prest
 
-      if train:
-        self.lru.put('k_centers_batch', kernel_mat[:, :self.original_size].T)
+    poriginal = kernel_mat[:, :self.original_size
+                           ] @ weights[:self.original_size, :]
+    if centers.shape[0] > self.original_size:
+      prest = fmm.KmV(
+          self._kernel_fn, x,
+          centers[self.original_size:],
+          weights[self.original_size:],
+          col_chunk_size=2**16
+      )
+    else:
+      prest = 0
+    predictions = poriginal + prest
+
+    if train:
+      self.lru.put('k_centers_batch', kernel_mat[:, :self.original_size].T)
 
     del x, kernel_mat
     torch.cuda.empty_cache()
@@ -191,14 +185,12 @@ class PreallocatedKernelMachine(km.KernelMachine):
 
 
   def update_by_index(self, indices: torch.Tensor,
-                      delta: torch.Tensor,projection:bool=False) -> None:
+                      delta: torch.Tensor) -> None:
     """Update the model weights by index.
 
     Args:
       indices: Tensor of 1-D indices to select rows of weights.
       delta: Tensor of weight update of shape [n_indices, n_outputs].
     """
-    if projection:
-      self.weights_project[indices] +=delta
-    else:
-      self._weights[indices] += delta
+
+    self._weights[indices] += delta

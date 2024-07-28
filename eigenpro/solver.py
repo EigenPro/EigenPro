@@ -11,6 +11,7 @@ import eigenpro.preconditioner as pcd
 import eigenpro.optimizers as opt
 import eigenpro.utils.mapreduce as mapreduce
 import eigenpro.utils.metrics as metrics
+from eigenpro.projector import project
 
 
 def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
@@ -47,7 +48,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
     p = model.size 
     n = X.shape[0]
-    d_out = Y.shape[-1]
+
     device_base = device.device_base
     if kernel is None:
         kernel_fn = lambda x, z: kernels.laplacian(x, z, bandwidth= 20.0)
@@ -56,17 +57,17 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
 
 
-    # preconditioner
-    nys_model = model.centers[0][0:s_model] # we are assuming first s_model of Z are being used as Nystrom
-                             # samples for the projection problem
+    # data - preconditioner
+
     nys_data_indices = np.random.choice(X.shape[0], s_data, replace=False)
     nys_data = X[nys_data_indices, :].to(device_base)
-
     data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, q_data)
-    model_preconditioner = pcd.Preconditioner(kernel_fn, nys_model, q_model)
-                   
     data_preconditioner.change_type(dtype=dtype)
-    model_preconditioner.change_type(dtype=dtype)
+
+    # model preconditioner to be calculated later
+    model_preconditioner = None
+    nys_model_indices = None
+
                    
     kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
 
@@ -74,11 +75,10 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     # data loader
     dataset = array_dataset.ArrayDataset(X, Y)
     data_batch_size = min(10_000, data_preconditioner.critical_batch_size)
-    model_batch_size = min(10_000, model_preconditioner.critical_batch_size)
     train_dataloader = torch_data.DataLoader(dataset, batch_size=data_batch_size , shuffle=True)
 
     # optimizer
-    optimizer = opt.EigenPro(model, p, data_preconditioner,model_preconditioner,kz_xs_evecs,dtype,
+    optimizer = opt.EigenPro(model, p, data_preconditioner, kz_xs_evecs,dtype,
                          accumulated_gradients=accumulated_gradients)
     # projection frequency
     if T is None:
@@ -96,8 +96,6 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         [colored("size of training dataset", 'green'), X.shape[0]],
         [colored("critical batch size (SGD)",'green'), data_preconditioner.critical_batch_size],
         [colored("batch size (SGD)",'green'), data_batch_size],
-        [colored("critical batch size (projection)",'green'), model_preconditioner.critical_batch_size],
-        [colored("batch size (projection)", 'green'), model_batch_size],
         [colored("scaled learning rate",'green'),
          f"{data_preconditioner.scaled_learning_rate(data_preconditioner.critical_batch_size):.2f}"],
         [colored("projection interval (in batches)",'green'), T]
@@ -132,21 +130,13 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
                 torch.cuda.empty_cache()
 
             if ( (project_counter + 1) % T == 0 or (t==len(train_dataloader)-1) ) and accumulated_gradients:
-                projection_dataset = array_dataset.ArrayDataset(model.centers[0], optimizer.grad_accumulation)
-                projection_loader = torch_data.DataLoader(
-                    projection_dataset, batch_size=model_batch_size, shuffle=True)
-                for _ in range(1):
-                    for z_batch, grad_batch, id_batch in tqdm(
-                            projection_loader, 
-                            total=len(projection_loader), 
-                            leave=False,
-                            desc="Projection"
-                        ):
-                        optimizer.step(z_batch, grad_batch, id_batch, projection=True)
 
-                update_projection = torch.cat([k.weights_project.to(device_base) for k in model.shard_kms])
+                weights_project, (model_preconditioner,nys_model_indices) = \
+                    project(model.shard_kms[0], kernel_fn, s_model, q_model,
+                            device,labels=optimizer.grad_accumulation,
+                            preconditioner= (model_preconditioner,nys_model_indices), update_preconditioner=False)
 
-                model.update_by_index(torch.tensor(list(range(p))), update_projection)
+                model.update_by_index(torch.tensor(list(range(p))), weights_project)
                 model.reset()
                 optimizer.reset()
                 if torch.cuda.is_available():

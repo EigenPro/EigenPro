@@ -37,12 +37,12 @@ class ShardedKernelMachine(km.KernelMachine):
 
 
 
-  def forward(self, x: torch.Tensor, projection:bool=False,train=True) -> torch.Tensor:
+  def forward(self, x: torch.Tensor, train=True) -> torch.Tensor:
     """Forward pass for the kernel machine.
 
     Args:
         x (torch.Tensor): input tensor of shape [n_samples, n_features].
-        projection(bool): Projection mode, updating projection weights.
+
         train(bool): Train mode, storing kernel_mat[:, :self.original_size].T in cache.
 
     Returns:
@@ -51,8 +51,7 @@ class ShardedKernelMachine(km.KernelMachine):
 
     x_broadcast = self.device(x)
     with ThreadPoolExecutor() as executor:
-      predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[i],
-                                     projection=projection,train=train)
+      predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[i],train=train)
                      for i in range(self.n_devices)]
     results = [k.result() for k in predictions]
 
@@ -110,7 +109,6 @@ class ShardedKernelMachine(km.KernelMachine):
     return center_weights
   def update_by_index(self, indices: torch.Tensor,
                       delta: torch.Tensor,
-                      projection:bool=False,
                       nystrom_update:bool = False) -> None:
     """Update the model weights by index.
 
@@ -119,7 +117,6 @@ class ShardedKernelMachine(km.KernelMachine):
     Args:
       indices: Tensor of 1-D indices to select rows of weights.
       delta: Tensor of weight update of shape [n_indices, n_outputs].
-      projection (bool): update projection weights
       nystrom_update: updating data nystrom samples in the temporory centers phase.
 
     """
@@ -129,11 +126,8 @@ class ShardedKernelMachine(km.KernelMachine):
     threshold_before = 0
 
     for i in range(self.n_devices):
-      if projection:
-        # only on one gpu, does not work with multi-gpu
-        indices_list.append(indices)
-        delta_list.append(delta)
-      elif nystrom_update:
+
+      if nystrom_update:
         number_nystroms_in_gpui = self.shard_kms[i].nystrom_size
         indices_in_gpui = torch.tensor( list(range(self.shard_kms[i].original_size,
                                      self.shard_kms[i].original_size+number_nystroms_in_gpui)
@@ -152,7 +146,7 @@ class ShardedKernelMachine(km.KernelMachine):
 
     with ThreadPoolExecutor() as executor:
       _ = [executor.submit(self.shard_kms[i].update_by_index, indices_list[i],
-                           delta_list[i],projection=projection) for i in range(self.n_devices)]
+                           delta_list[i]) for i in range(self.n_devices)]
 
 
   def reset(self):
