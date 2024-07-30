@@ -45,7 +45,7 @@ class EigenPro:
         else:
             self.grad_accumulation = None
 
-        #### Initilizing nystrom samples to the model
+        # Initilizing nystrom samples to the model
         self._model.init_nystorm(data_preconditioner.centers.to(dtype))
 
 
