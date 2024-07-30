@@ -60,8 +60,6 @@ class PreallocatedKernelMachine(km.KernelMachine):
       self._weights = torch.zeros(preallocation_size, self._n_outputs,
                                   device=device, dtype=self.dtype)
 
-    self.weights_project = torch.zeros(centers.shape[0], self._n_outputs,
-                                  device=device, dtype=self.dtype)
 
     self.used_capacity = 0
     self.add_centers(centers, weights)
@@ -82,6 +80,10 @@ class PreallocatedKernelMachine(km.KernelMachine):
   def weights(self) -> int:
     """Return the weights."""
     return self._weights[:self.size]
+
+  def init_nystorm(self,nystrom_centers):
+    self.centers_nyst = nystrom_centers.to(self.device )
+    self.weights_nyst = torch.zeros((nystrom_centers.shape[0],self._n_outputs)).to(self.device )
 
   def forward(self, x: torch.Tensor,
               train=True) -> torch.Tensor:
@@ -108,16 +110,23 @@ class PreallocatedKernelMachine(km.KernelMachine):
 
     poriginal = kernel_mat[:, :self.original_size
                            ] @ weights[:self.original_size, :]
+
     if centers.shape[0] > self.original_size:
-      prest = fmm.KmV(
+      p_tmp = fmm.KmV(
           self._kernel_fn, x,
           centers[self.original_size:],
           weights[self.original_size:],
           col_chunk_size=2**16
       )
+
+      kernel_mat_nyst = self._kernel_fn(x, self.centers_nyst)
+      p_nyst = kernel_mat_nyst @ self.weights_nyst
+
     else:
-      prest = 0
-    predictions = poriginal + prest
+      p_tmp  = 0
+      p_nyst = 0
+
+    predictions = poriginal + p_tmp + p_nyst
 
     if train:
       self.lru.put('k_centers_batch', kernel_mat[:, :self.original_size].T)
@@ -177,11 +186,10 @@ class PreallocatedKernelMachine(km.KernelMachine):
     Returns:
         None
     """
-    self.used_capacity = self.original_size + self.nystrom_size
-    self._centers[self.original_size + self.nystrom_size:, :] = 0
-    self.weights_project = torch.zeros_like(self.weights_project)
-
+    self.used_capacity = self.original_size
+    self._centers[self.original_size :, :] = 0
     self._weights[self.original_size:, :] = 0
+    self.weights_nyst = self.weights_nyst * 0
 
 
   def update_by_index(self, indices: torch.Tensor,
@@ -194,3 +202,6 @@ class PreallocatedKernelMachine(km.KernelMachine):
     """
 
     self._weights[indices] += delta
+
+  def update_nystroms(self,update_wieghts):
+    self.weights_nyst = self.weights_nyst + update_wieghts

@@ -45,9 +45,8 @@ class EigenPro:
         else:
             self.grad_accumulation = None
 
-        #### adding nystrom samples to the model
-        self._model.add_centers(data_preconditioner.centers.to(dtype), None,
-                                nystrom_centers = True)
+        #### Initilizing nystrom samples to the model
+        self._model.init_nystorm(data_preconditioner.centers.to(dtype))
 
 
 
@@ -108,7 +107,7 @@ class EigenPro:
 
 
 
-        self.model.update_by_index(None,lr*delta, nystrom_update=True)
+        self.model.shard_kms[0].update_nystroms(lr*delta)
 
         del grad, batch_x, batch_p, deltap, delta
         if torch.cuda.is_available():
