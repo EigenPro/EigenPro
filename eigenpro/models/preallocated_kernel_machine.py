@@ -81,8 +81,8 @@ class PreallocatedKernelMachine(km.KernelMachine):
     """Return the weights."""
     return self._weights[:self.size]
 
-  def init_nystorm(self,nystrom_centers):
-    self.centers_nyst = nystrom_centers.to(self.device )
+  def init_nystorm(self, nystrom_centers):
+    self.centers_nyst = nystrom_centers.to(self.device)
     self.weights_nyst = torch.zeros((nystrom_centers.shape[0],self._n_outputs)).to(self.device )
 
   def forward(self, x: torch.Tensor,
@@ -108,7 +108,7 @@ class PreallocatedKernelMachine(km.KernelMachine):
     kernel_mat = self._kernel_fn(x, centers[:self.original_size])
 
 
-    poriginal = kernel_mat[:, :self.original_size
+    p_orig = kernel_mat[:, :self.original_size
                            ] @ weights[:self.original_size, :]
 
     kernel_mat_nyst = self._kernel_fn(x, self.centers_nyst)
@@ -125,7 +125,7 @@ class PreallocatedKernelMachine(km.KernelMachine):
       p_tmp  = 0
 
 
-    predictions = poriginal + p_tmp + p_nyst
+    predictions = p_orig + p_tmp + p_nyst
 
     if train:
       self.lru.put('k_centers_batch', kernel_mat[:, :self.original_size].T)
@@ -186,7 +186,7 @@ class PreallocatedKernelMachine(km.KernelMachine):
         None
     """
     self.used_capacity = self.original_size
-    self._centers[self.original_size :, :] = 0
+    self._centers[self.original_size:, :] = 0
     self._weights[self.original_size:, :] = 0
     self.weights_nyst = self.weights_nyst * 0
 
@@ -202,5 +202,5 @@ class PreallocatedKernelMachine(km.KernelMachine):
 
     self._weights[indices] += delta
 
-  def update_nystroms(self,update_wieghts):
+  def update_nystroms(self, update_wieghts):
     self.weights_nyst = self.weights_nyst + update_wieghts
