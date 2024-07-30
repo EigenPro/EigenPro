@@ -121,7 +121,7 @@ class ShardedKernelMachine(km.KernelMachine):
         return center_weights
 
     def update_by_index(self, indices: torch.Tensor,
-                        delta: torch.Tensor) -> None:
+                delta: torch.Tensor) -> None:
         """Update the model weights by index.
 
         Here we assume that only the first block is trainable.
