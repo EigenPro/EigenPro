@@ -111,6 +111,9 @@ class PreallocatedKernelMachine(km.KernelMachine):
     poriginal = kernel_mat[:, :self.original_size
                            ] @ weights[:self.original_size, :]
 
+    kernel_mat_nyst = self._kernel_fn(x, self.centers_nyst)
+    p_nyst = kernel_mat_nyst @ self.weights_nyst
+
     if centers.shape[0] > self.original_size:
       p_tmp = fmm.KmV(
           self._kernel_fn, x,
@@ -118,13 +121,9 @@ class PreallocatedKernelMachine(km.KernelMachine):
           weights[self.original_size:],
           col_chunk_size=2**16
       )
-
-      kernel_mat_nyst = self._kernel_fn(x, self.centers_nyst)
-      p_nyst = kernel_mat_nyst @ self.weights_nyst
-
     else:
       p_tmp  = 0
-      p_nyst = 0
+
 
     predictions = poriginal + p_tmp + p_nyst
 
