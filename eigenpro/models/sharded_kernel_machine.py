@@ -11,19 +11,19 @@ import eigenpro.utils.device as device
 
 
 class ShardedKernelMachine(km.KernelMachine):
-	"""Kernel machine that shards its computation across multiple devices."""
-	
-	def __init__(self, kms: List[km.KernelMachine], device: device.Device):
-		self.device = device
-		self.shard_kms = kms
-		self.n_devices = len(kms)
-		self.n_machines = len(kms)
-		self.lru = cache.LRUCache()
-		super().__init__(
-				kms[0].kernel_fn,
-				kms[0].n_outputs,
-				sum(km.size for km in kms)
-		)
+  """Kernel machine that shards its computation across multiple devices."""
+
+  def __init__(self, kms: List[km.KernelMachine], device: device.Device ):
+    self.device = device
+    self.shard_kms = kms
+    self.n_devices = len(kms)
+    self.n_machines = len(kms)
+    self.lru = cache.LRUCache()
+    super().__init__(
+        kms[0].kernel_fn, 
+        kms[0].n_outputs, 
+        sum(km.size for km in kms)
+    )
   @property
   def centers(self):
       """Return the centers"""
