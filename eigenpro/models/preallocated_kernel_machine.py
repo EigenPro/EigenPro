@@ -60,8 +60,6 @@ class PreallocatedKernelMachine(km.KernelMachine):
       self._weights = torch.zeros(preallocation_size, self._n_outputs,
                                   device=device, dtype=self.dtype)
 
-    self.weights_project = torch.zeros(centers.shape[0], self._n_outputs,
-                                  device=device, dtype=self.dtype)
 
     self.used_capacity = 0
     self.add_centers(centers, weights)
@@ -185,7 +183,6 @@ class PreallocatedKernelMachine(km.KernelMachine):
     """
     self.used_capacity = self.original_size + self.nystrom_size
     self._centers[self.original_size + self.nystrom_size:, :] = 0
-    self.weights_project = torch.zeros_like(self.weights_project)
 
     self._weights[self.original_size:, :] = 0
 
