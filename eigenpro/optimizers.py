@@ -10,7 +10,6 @@ class EigenPro:
 
     Args:
         model (KernelMachine): A KernelMachine instance.
-        threshold_index (int): An index used for thresholding.
         data_preconditioner (Preconditioner): Preconditioner instance that
             contains a top kernel eigensystem for correcting the gradient for
             data.
@@ -19,12 +18,10 @@ class EigenPro:
     Attributes:
         model (KernelMachine): A KernelMachine instance.
         precon (Preconditioner): A Preconditioner instance.
-        _threshold_index (int): An index used for thresholding.
     """
 
     def __init__(self,
                  model: km.KernelMachine,
-                 threshold_index: int,
                  data_preconditioner: pcd.Preconditioner,
                  kz_xs_evecs:torch.tensor = None,
                  dtype=torch.float32,
@@ -33,7 +30,6 @@ class EigenPro:
 
         self.dtype = dtype
         self._model = model
-        self._threshold_index = threshold_index
         self.data_preconditioner  = data_preconditioner
 
         if accumulated_gradients:

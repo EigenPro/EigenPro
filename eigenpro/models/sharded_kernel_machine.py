@@ -20,8 +20,8 @@ class ShardedKernelMachine(km.KernelMachine):
         self.n_machines = len(kms)
         self.lru = cache.LRUCache()
         super().__init__(
-            kms[0].kernel_fn, 
-            kms[0].n_outputs, 
+            kms[0].kernel_fn,
+            kms[0].n_outputs,
             sum(km.size for km in kms)
         )
 
@@ -45,6 +45,7 @@ class ShardedKernelMachine(km.KernelMachine):
         Returns:
             torch.Tensor: tensor of shape [n_samples, n_outputs].
         """
+
         x_broadcast = self.device(x)
         with ThreadPoolExecutor() as executor:
             predictions = [executor.submit(self.shard_kms[i].forward, x_broadcast[i], train=train)
@@ -68,33 +69,16 @@ class ShardedKernelMachine(km.KernelMachine):
 
         return p_all
 
-    def init_nystorm(self, centers):
-        centers_gpus_list = self.device(centers, strategy="divide_to_gpu")
-
-        with ThreadPoolExecutor() as executor:
-            outputs = [executor.submit(self.shard_kms[i].init_nystorm, centers_gpus_list[i])
-                       for i in range(self.n_devices)]
-
-        for outputs in as_completed(outputs):
-            try:
-                # Retrieve the result of the future
-                _ = outputs.result()
-                # Process the result if necessary
-            except Exception as exc:
-                # Handle exceptions from within the thread
-                print(f"A thread caused an error: {exc}")
-                raise  # Reraising the exception will stop the program
-
     def add_centers(self, centers: torch.Tensor, weights: Optional[torch.Tensor] = None) -> None:
         """Adds new centers and weights.
 
         Args:
-            centers: Kernel centers of shape [n_centers, n_features].
-            weights: Weight parameters corresponding to the centers of shape
-                     [n_centers, n_output].
+          centers: Kernel centers of shape [n_centers, n_features].
+          weights: Weight parameters corresponding to the centers of shape
+                   [n_centers, n_output].
 
         Returns:
-            center_weights: Weight parameters corresponding to the added centers.
+          center_weights: Weight parameters corresponding to the added centers.
         """
         centers_gpus_list = self.device(centers, strategy="divide_to_gpu")
         center_weights = weights if weights is not None else torch.zeros(
@@ -102,8 +86,9 @@ class ShardedKernelMachine(km.KernelMachine):
         weights_gpus_list = self.device(center_weights, strategy="divide_to_gpu")
 
         with ThreadPoolExecutor() as executor:
-            outputs = [executor.submit(self.shard_kms[i].add_centers, centers_gpus_list[i],
-                                       weights_gpus_list[i]) for i in range(self.n_devices)]
+            outputs = [executor.submit(self.shard_kms[i].add_centers, centers_gpus_list[i]
+                                       , weights_gpus_list[i]) for i in
+                       range(self.n_devices)]
 
         for outputs in as_completed(outputs):
             try:
@@ -117,15 +102,16 @@ class ShardedKernelMachine(km.KernelMachine):
 
         return center_weights
 
-    def update_by_index(self, indices: torch.Tensor, delta: torch.Tensor) -> None:
+    def update_by_index(self, indices: torch.Tensor,
+                        delta: torch.Tensor,) -> None:
         """Update the model weights by index.
 
         Here we assume that only the first block is trainable.
 
         Args:
-            indices: Tensor of 1-D indices to select rows of weights.
-            delta: Tensor of weight update of shape [n_indices, n_outputs].
-            nystrom_update: updating data nystrom samples in the temporory centers phase.
+          indices: Tensor of 1-D indices to select rows of weights.
+          delta: Tensor of weight update of shape [n_indices, n_outputs].
+
         """
         indices_list = []
         delta_list = []
@@ -145,8 +131,7 @@ class ShardedKernelMachine(km.KernelMachine):
                                  delta_list[i]) for i in range(self.n_devices)]
 
     def reset(self):
-        """reset the model to before adding temporary centers were added and before projection
-
+        """reset the model to before adding temporary centers were added adn before projection
         Args:
             No arguments.
         Returns:
@@ -155,6 +140,23 @@ class ShardedKernelMachine(km.KernelMachine):
         with ThreadPoolExecutor() as executor:
             [executor.submit(self.shard_kms[i].reset())
              for i in range(self.n_devices)]
+
+    def init_nystorm(self, centers):
+        centers_gpus_list = self.device(centers, strategy="divide_to_gpu")
+
+        with ThreadPoolExecutor() as executor:
+            outputs = [executor.submit(self.shard_kms[i].init_nystorm, centers_gpus_list[i])
+                       for i in range(self.n_devices)]
+
+        for outputs in as_completed(outputs):
+            try:
+                # Retrieve the result of the future
+                _ = outputs.result()
+                # Process the result if necessary
+            except Exception as exc:
+                # Handle exceptions from within the thread
+                print(f"A thread caused an error: {exc}")
+                raise  # Reraising the exception will stop the program
 
 
 def create_sharded_kernel_machine(centers: torch.Tensor, n_outputs: int, kernel_fn: Callable,
@@ -176,6 +178,7 @@ def create_sharded_kernel_machine(centers: torch.Tensor, n_outputs: int, kernel_
 
     Returns:
         A ShardedKernelMachine instance that manages the distributed kernel machines.
+
     """
     # Divide the centers among available GPUs as per the provided strategy
     list_of_centers = device(centers, strategy="divide_to_gpu")

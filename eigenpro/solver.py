@@ -46,7 +46,6 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     """
 
 
-    p = model.size 
     n = X.shape[0]
 
     device_base = device.device_base
@@ -66,7 +65,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
     # model preconditioner to be calculated later
     model_preconditioner = None
-    nys_model_indices = None
+
 
                    
     kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
@@ -78,11 +77,11 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     train_dataloader = torch_data.DataLoader(dataset, batch_size=data_batch_size , shuffle=True)
 
     # optimizer
-    optimizer = opt.EigenPro(model, p, data_preconditioner, kz_xs_evecs,dtype,
+    optimizer = opt.EigenPro(model, data_preconditioner, kz_xs_evecs,dtype,
                          accumulated_gradients=accumulated_gradients)
     # projection frequency
     if T is None:
-        T = ((tmp_centers_coeff-1)*p-s_data)//data_preconditioner.critical_batch_size    #2
+        T = ((tmp_centers_coeff-1)* model.size -s_data)//data_preconditioner.critical_batch_size    #2
 
     # configuration summary
     data = [
@@ -110,7 +109,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         wandb.config.update({f'Project Frequency':f'{T}',
                            f'batch_size':f'{data_batch_size}',
                            f'number of training samples': f'{n}',
-                           f'number of centers': f'{p}',
+                           f'number of centers': f'{model.size}',
                            f's_data':f'{s_data}',
                            f'q_data': f'{q_data}',
                            f's_model': f'{s_model}',
@@ -131,12 +130,17 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
             if ( (project_counter + 1) % T == 0 or (t==len(train_dataloader)-1) ) and accumulated_gradients:
 
-                weights_project, (model_preconditioner,nys_model_indices) = \
-                    project(model.shard_kms[0], kernel_fn, s_model, q_model,
-                            device,labels=optimizer.grad_accumulation,
-                            preconditioner= (model_preconditioner,nys_model_indices), update_preconditioner=False)
+                if model_preconditioner is None:
+                    # model preconditioner
+                    nys_model_indices = np.random.choice(model.centers[0].shape[0], s_model, replace=False)
+                    nys = model.centers[0][nys_model_indices, :].to(device_base)
+                    model_preconditioner = pcd.Preconditioner(kernel_fn, nys, q_model)
+                    model_preconditioner.change_type(dtype=dtype)
 
-                model.update_by_index(torch.tensor(list(range(p))), weights_project)
+                weights_project = project(model.shard_kms[0].centers, optimizer.grad_accumulation,
+                                          model_preconditioner, nys_model_indices, kernel_fn)
+
+                model.update_by_index(torch.tensor(list(range(model.size))), weights_project)
                 model.reset()
                 optimizer.reset()
                 if torch.cuda.is_available():

@@ -8,39 +8,27 @@ import eigenpro.data.array_dataset as array_dataset
 
 
 
-def project(model, kernel_fn,s,q,device,labels=None, preconditioner = None, update_preconditioner = False):
-    """Fit a kernel model using EigenPro method.
+def project(centers, target_evaluations, model_preconditioner, nys_model_indices, kernel_fn):
 
-    ### ATTENTION: WORKS ONLY WITH 1-GPU!
+    """Project the target_evaluations into the function space span by centers given the kernel
+
+    # ATTENTION: WORKS ONLY WITH 1-GPU!
 
      Args:
-         model (KernelMachine): A KernelMachine instance.
-         device(object): device object from device.py.
-         kernel(function): kernel function (default is laplacian kernel with bandwidth 20.0)
-         s(int): number of Nystrom samples for model preconditioner
-         q(int): number of suppressed eigenvalues for model preconditioner
-         preconditioner: tuple (model_preconditioner, nys_model_indices) if None they will be created.
-                        Preconditioner instance that contains a top kernel eigensystem for correcting the gradient for
-                        the projection.
-         update_preconditioner: if preconditioner is not None but we want to recalculate the preconditioner.
+         centers (Tensor): Centers corresponding to some kernel function
+         target_evaluations(Tensro): Evaluation of target function on the centers of the projection space.
+         model_preconditioner: Preconditioner instance that contains a top kernel eigensystem for correcting
+         the gradient forthe projection.
+         nys_model_indices: indices of centers that used for preconditioner.
+         kernel(function): kernel function.
+
 
      Returns:
-         model(object): the trained model will be returned
+         weights_project(Tensor): The projected weigths.
      """
 
-
-    p = model.centers.shape[0]
-    dtype = model.centers.dtype
-
-    device_base = device.device_base
-
-    model_preconditioner, nys_model_indices = preconditioner
-
-    if model_preconditioner is None or update_preconditioner:
-        nys_model_indices = np.random.choice(p, s, replace=False)
-        nys = model.centers[nys_model_indices, :].to(device_base)
-        model_preconditioner = pcd.Preconditioner(kernel_fn, nys, q)
-        model_preconditioner.change_type(dtype=dtype)
+    p = centers.shape[0]
+    dtype = centers.dtype
 
 
 
@@ -48,21 +36,15 @@ def project(model, kernel_fn,s,q,device,labels=None, preconditioner = None, upda
 
 
 
-    # make data loader
-    if labels is None:
-        print("Evaluating labels for projection ...")
-        raise NotImplementedError("This method should be overridden by subclasses.")
-
-
     # ipdb.set_trace()
-    projection_dataset = array_dataset.ArrayDataset(model.centers, labels)
+    projection_dataset = array_dataset.ArrayDataset(centers, target_evaluations)
     projection_loader = torch_data.DataLoader(
         projection_dataset, batch_size=model_batch_size, shuffle=True)
 
-    d_out = labels.shape[-1]
+    d_out = target_evaluations.shape[-1]
     #wiegths
     weights_project = torch.zeros(p, d_out,
-                                  device=device_base, dtype = dtype)
+                                  device=centers.device, dtype = dtype)
 
     # ipdb.set_trace()
     for _ in range(1):
@@ -74,7 +56,7 @@ def project(model, kernel_fn,s,q,device,labels=None, preconditioner = None, upda
         ):
             # optimizer.step(z_batch, grad_batch, id_batch, projection=True)
 
-            kernel_mat = kernel_fn(z_batch, model.centers)
+            kernel_mat = kernel_fn(z_batch, centers)
             batch_p = kernel_mat@weights_project
 
             grad = batch_p - labels_batch.to(dtype).to(batch_p.device)
@@ -90,8 +72,5 @@ def project(model, kernel_fn,s,q,device,labels=None, preconditioner = None, upda
             weights_project[nys_model_indices,:] = weights_project[nys_model_indices,:] + lr * delta
 
 
-
-
-
-    return weights_project, (model_preconditioner,nys_model_indices)
+    return weights_project
 
