@@ -54,22 +54,15 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
     else:
         kernel_fn = kernel
 
-
-
-    # data - preconditioner
-
+    # data pre-conditioner
     nys_data_indices = np.random.choice(X.shape[0], s_data, replace=False)
     nys_data = X[nys_data_indices, :].to(device_base)
     data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, q_data)
     data_preconditioner.change_type(dtype=dtype)
+    kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
 
     # model preconditioner to be calculated later
     model_preconditioner = None
-
-
-                   
-    kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
-
 
     # data loader
     dataset = array_dataset.ArrayDataset(X, Y)
