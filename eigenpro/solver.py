@@ -15,7 +15,8 @@ from eigenpro.projector import project
 
 
 def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
-        s_data=3_000, s_model=3_000, q_data=150, q_model=150,
+        n_data_pcd_nyst_samples=3_000, n_model_pcd_nyst_samples=3_000,
+        n_data_pcd_eigenvals=150, n_model_pcd_eigenvals =150,
         tmp_centers_coeff=2, wandb=None, T=None, epochs=1,
         accumulated_gradients=True):
     """Fit a kernel model using EigenPro method.
@@ -29,10 +30,10 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         device(object): device object from device.py.
         dtype(torch.float32 or torch.float16): to save memory the default is torch.float16.
         kernel(function): kernel function (default is laplacian kernel with bandwidth 20.0)
-        s_data(int): number of Nystrom samples for data preconditioner
-        s_model(int): number of Nystrom samples for model preconditioner
-        q_data(int): number of suppressed eigenvalues for data preconditioner
-        q_model(int): number of suppressed eigenvalues for model preconditioner
+        n_data_pcd_nyst_samples(int): number of Nystrom samples for data preconditioner
+        n_model_pcd_nyst_samples(int): number of Nystrom samples for model preconditioner
+        n_data_pcd_eigenvals(int): number of suppressed eigenvalues for data preconditioner
+        n_model_pcd_eigenvals(int): number of suppressed eigenvalues for model preconditioner
         tmp_centers_coeff(int): ratio between total number of centers(temporary + Z) and number of original centers(Z)
         wandb(object): wandb object to log the result to wandb
         T(int): number of step to add temporary centers, note that if this is set to a number 'tmp_centers_coeff'
@@ -55,9 +56,9 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         kernel_fn = kernel
 
     # data pre-conditioner
-    nys_data_indices = np.random.choice(X.shape[0], s_data, replace=False)
+    nys_data_indices = np.random.choice(X.shape[0], n_data_pcd_nyst_samples, replace=False)
     nys_data = X[nys_data_indices, :].to(device_base)
-    data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, q_data)
+    data_preconditioner = pcd.Preconditioner(kernel_fn, nys_data, n_data_pcd_eigenvals)
     data_preconditioner.change_type(dtype=dtype)
     kz_xs_evecs = data_preconditioner.eval_vec(model.centers[0]).to(device_base).type(dtype)
 
@@ -74,17 +75,17 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
                          accumulated_gradients=accumulated_gradients)
     # projection frequency
     if T is None:
-        T = ((tmp_centers_coeff-1)* model.size -s_data)//data_preconditioner.critical_batch_size    #2
+        T = ((tmp_centers_coeff-1)* model.size)//data_preconditioner.critical_batch_size    #2
 
     # configuration summary
     data = [
         [colored("size of model", 'green'), model.size],
         [colored("ambient dimension", 'green'), X.shape[1]],
         [colored("output dimension", 'green'), Y.shape[1]],
-        [colored("size of data preconditioner", 'green'), s_data],
-        [colored("level of data preconditioner", 'green'), q_data],
-        [colored("size of model preconditioner", 'green'), s_model],
-        [colored("level of model preconditioner", 'green'), q_model],
+        [colored("size of data preconditioner", 'green'), n_data_pcd_nyst_samples],
+        [colored("level of data preconditioner", 'green'), n_data_pcd_eigenvals],
+        [colored("size of model preconditioner", 'green'), n_model_pcd_nyst_samples],
+        [colored("level of model preconditioner", 'green'), n_model_pcd_eigenvals],
         [colored("size of training dataset", 'green'), X.shape[0]],
         [colored("critical batch size (SGD)",'green'), data_preconditioner.critical_batch_size],
         [colored("batch size (SGD)",'green'), data_batch_size],
@@ -125,9 +126,10 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
                 if model_preconditioner is None:
                     # model preconditioner
-                    nys_model_indices = np.random.choice(model.centers[0].shape[0], s_model, replace=False)
+                    nys_model_indices = np.random.choice(model.centers[0].shape[0],
+                                                         n_model_pcd_nyst_samples, replace=False)
                     nys = model.centers[0][nys_model_indices, :].to(device_base)
-                    model_preconditioner = pcd.Preconditioner(kernel_fn, nys, q_model)
+                    model_preconditioner = pcd.Preconditioner(kernel_fn, nys, n_model_pcd_eigenvals)
                     model_preconditioner.change_type(dtype=dtype)
 
                 weights_project = project(model.shard_kms[0].centers, optimizer.grad_accumulation,
