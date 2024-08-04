@@ -10,25 +10,19 @@ class EigenPro:
 
     Args:
         model (KernelMachine): A KernelMachine instance.
-        threshold_index (int): An index used for thresholding.
         data_preconditioner (Preconditioner): Preconditioner instance that
             contains a top kernel eigensystem for correcting the gradient for
             data.
-        model_preconditioner (Preconditioner): Preconditioner instance that
-            contains a top kernel eigensystem for correcting the gradient for
-            the projection.
+
 
     Attributes:
         model (KernelMachine): A KernelMachine instance.
         precon (Preconditioner): A Preconditioner instance.
-        _threshold_index (int): An index used for thresholding.
     """
 
     def __init__(self,
                  model: km.KernelMachine,
-                 threshold_index: int,
                  data_preconditioner: pcd.Preconditioner,
-                 model_preconditioner: pcd.Preconditioner,
                  kz_xs_evecs:torch.tensor = None,
                  dtype=torch.float32,
                  accumulated_gradients:bool = False,) -> None:
@@ -36,9 +30,7 @@ class EigenPro:
 
         self.dtype = dtype
         self._model = model
-        self._threshold_index = threshold_index
         self.data_preconditioner  = data_preconditioner
-        self.model_preconditioner = model_preconditioner
 
         if accumulated_gradients:
             self.grad_accumulation = 0
@@ -49,9 +41,8 @@ class EigenPro:
         else:
             self.grad_accumulation = None
 
-        #### adding nystrom samples to the model
-        self._model.add_centers(data_preconditioner.centers.to(dtype), None,
-                                nystrom_centers = True)
+        # Initilizing nystrom samples to the model
+        self._model.init_nystorm(data_preconditioner.centers.to(dtype))
 
 
 
@@ -68,35 +59,29 @@ class EigenPro:
     def step(self,
              batch_x: torch.Tensor,
              batch_y: torch.Tensor,
-             batch_ids: torch.Tensor,
-             projection:bool=False) -> None:
+             batch_ids: torch.Tensor,) -> None:
         """Performs a single optimization step.
 
         Args:
             batch_x (torch.Tensor): Batch of input features.
             batch_y (torch.Tensor): Batch of target values.
             batch_ids (torch.Tensor): Batch of sample indices.
-            projection (bool): projection mode
         """
 
-        batch_p = self.model.forward(batch_x,projection=projection)
+        batch_p = self.model.forward(batch_x)
         # gradient in function space K(bathc,.) (f-y)
         grad = batch_p - batch_y.to(self.dtype).to(batch_p.device)
         batch_size = batch_x.shape[0]
 
 
-        if projection:
-            lr = self.model_preconditioner.scaled_learning_rate(batch_size)
-            deltap, delta = self.model_preconditioner.delta(
-                batch_x.to(grad.device).to(self.dtype), grad)
-        else:
-            lr = self.data_preconditioner.scaled_learning_rate(batch_size)
-            deltap, delta = self.data_preconditioner.delta(
-                batch_x.to(grad.device).to(self.dtype), grad.to(self.dtype))
 
-        if self.grad_accumulation is None or projection:
-            self.model.update_by_index(batch_ids, -lr*grad,
-                                       projection=projection)
+
+        lr = self.data_preconditioner.scaled_learning_rate(batch_size)
+        deltap, delta = self.data_preconditioner.delta(
+            batch_x.to(grad.device).to(self.dtype), grad.to(self.dtype))
+
+        if self.grad_accumulation is None:
+            self.model.update_by_index(batch_ids, -lr*grad)
         else:
             k_centers_batch_all = self.model.lru.get('k_centers_batch')
             self.model.lru.cache.clear()
@@ -118,10 +103,7 @@ class EigenPro:
 
 
 
-        self.model.update_by_index(torch.tensor(
-            list(range(self.model_preconditioner._centers.shape[0]))),
-                                   lr*delta, nystrom_update=True,
-                                   projection=projection)
+        self.model.shard_kms[0].update_nystroms(lr*delta)
 
         del grad, batch_x, batch_p, deltap, delta
         if torch.cuda.is_available():

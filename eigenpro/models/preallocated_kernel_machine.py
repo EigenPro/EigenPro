@@ -60,8 +60,6 @@ class PreallocatedKernelMachine(km.KernelMachine):
       self._weights = torch.zeros(preallocation_size, self._n_outputs,
                                   device=device, dtype=self.dtype)
 
-    self.weights_project = torch.zeros(centers.shape[0], self._n_outputs,
-                                  device=device, dtype=self.dtype)
 
     self.used_capacity = 0
     self.add_centers(centers, weights)
@@ -83,13 +81,16 @@ class PreallocatedKernelMachine(km.KernelMachine):
     """Return the weights."""
     return self._weights[:self.size]
 
-  def forward(self, x: torch.Tensor, projection: bool=False,
+  def init_nystorm(self, nystrom_centers):
+    self.centers_nyst = nystrom_centers.to(self.device)
+    self.weights_nyst = torch.zeros((nystrom_centers.shape[0],self._n_outputs)).to(self.device )
+
+  def forward(self, x: torch.Tensor,
               train=True) -> torch.Tensor:
     """Forward pass for the kernel machine.
 
     Args:
         x (torch.Tensor): input tensor of shape [n_samples, n_features].
-        projection(bool): Projection mode, updating projection weights
         train(bool): Train mode, storing kernel_mat[:, :self.original_size].T
           in cache
 
@@ -100,33 +101,34 @@ class PreallocatedKernelMachine(km.KernelMachine):
     x = x.to(self.dtype)
     x = x.to(self.device)
 
-    if projection:
-      centers = self._centers[:self.original_size, :]
-      weights = self._weights[:self.original_size, :]
-    else:
-      centers = self._centers[:self.used_capacity, :]
-      weights = self._weights[:self.used_capacity, :]
+
+    centers = self._centers[:self.used_capacity, :]
+    weights = self._weights[:self.used_capacity, :]
 
     kernel_mat = self._kernel_fn(x, centers[:self.original_size])
 
-    if projection:
-      predictions = kernel_mat @ self.weights_project
-    else:
-      poriginal = kernel_mat[:, :self.original_size
-                             ] @ weights[:self.original_size, :]
-      if centers.shape[0] > self.original_size:
-        prest = fmm.KmV(
-            self._kernel_fn, x, 
-            centers[self.original_size:],
-            weights[self.original_size:],
-            col_chunk_size=2**16
-        )
-      else:
-        prest = 0
-      predictions = poriginal + prest
 
-      if train:
-        self.lru.put('k_centers_batch', kernel_mat[:, :self.original_size].T)
+    p_orig = kernel_mat[:, :self.original_size
+                           ] @ weights[:self.original_size, :]
+
+    kernel_mat_nyst = self._kernel_fn(x, self.centers_nyst)
+    p_nyst = kernel_mat_nyst @ self.weights_nyst
+
+    if centers.shape[0] > self.original_size:
+      p_tmp = fmm.KmV(
+          self._kernel_fn, x,
+          centers[self.original_size:],
+          weights[self.original_size:],
+          col_chunk_size=2**16
+      )
+    else:
+      p_tmp  = 0
+
+
+    predictions = p_orig + p_tmp + p_nyst
+
+    if train:
+      self.lru.put('k_centers_batch', kernel_mat[:, :self.original_size].T)
 
     del x, kernel_mat
     torch.cuda.empty_cache()
@@ -183,22 +185,22 @@ class PreallocatedKernelMachine(km.KernelMachine):
     Returns:
         None
     """
-    self.used_capacity = self.original_size + self.nystrom_size
-    self._centers[self.original_size + self.nystrom_size:, :] = 0
-    self.weights_project = torch.zeros_like(self.weights_project)
-
+    self.used_capacity = self.original_size
+    self._centers[self.original_size:, :] = 0
     self._weights[self.original_size:, :] = 0
+    self.weights_nyst = self.weights_nyst * 0
 
 
   def update_by_index(self, indices: torch.Tensor,
-                      delta: torch.Tensor,projection:bool=False) -> None:
+                      delta: torch.Tensor) -> None:
     """Update the model weights by index.
 
     Args:
       indices: Tensor of 1-D indices to select rows of weights.
       delta: Tensor of weight update of shape [n_indices, n_outputs].
     """
-    if projection:
-      self.weights_project[indices] +=delta
-    else:
-      self._weights[indices] += delta
+
+    self._weights[indices] += delta
+
+  def update_nystroms(self, update_wieghts):
+    self.weights_nyst = self.weights_nyst + update_wieghts
