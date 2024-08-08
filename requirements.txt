@@ -6,3 +6,4 @@ torchvision
 tabulate
 termcolor
 tqdm
+datasets
