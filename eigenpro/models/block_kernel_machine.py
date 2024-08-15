@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 import torch
 
 import eigenpro.models.kernel_machine as km

@@ -1,4 +1,5 @@
 """`eigh` for kernel matrices"""
+
 from typing import Callable
 
 import numpy as np
@@ -35,9 +36,12 @@ class KernelEigenSystem(eigh.EigenSystem):
         # Overwrites base class `_vectors`
         self._vectors = torch.as_tensor(eigensys.vectors)
 
-        self._normalized_ratios = torch.as_tensor(
-            (1 - eigensys.min_value /
-             eigensys.values) / eigensys.values) / eigensys.vectors.shape[0]
+        self._normalized_ratios = (
+            torch.as_tensor(
+                (1 - eigensys.min_value / eigensys.values) / eigensys.values
+            )
+            / eigensys.vectors.shape[0]
+        )
 
     @property
     def beta(self) -> float:
@@ -67,19 +71,21 @@ class KernelEigenSystem(eigh.EigenSystem):
             None: This method is not expected to raise any exceptions.
         """
         self._vectors = self._vectors.to(dtype)
-        self._normalized_ratios =  self._normalized_ratios.to(dtype)
+        self._normalized_ratios = self._normalized_ratios.to(dtype)
 
 
-def top_eigensystem(samples: torch.Tensor, q: int,
-                    kernel_fn: Callable[[torch.Tensor, torch.Tensor],
-                                        torch.Tensor]) -> KernelEigenSystem:
+def top_eigensystem(
+    samples: torch.Tensor,
+    q: int,
+    kernel_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+) -> KernelEigenSystem:
     """Computes the top eigen system for a kernel matrix.
 
     Args:
         samples (torch.Tensor): A tensor containing the samples.
         q (int): The number of top eigenvalues to consider from the
             eigenspectrum.
-        kernel_fn (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): 
+        kernel_fn (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
             A kernel function that computes the kernel matrix for two sets of
             samples.
 

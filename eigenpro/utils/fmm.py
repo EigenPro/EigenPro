@@ -31,8 +31,9 @@ def KmV(kernel_f, X, Z, v, out=None, row_chunk_size=None, col_chunk_size=None):
 
     for i in range(math.ceil(n_r / b_r)):
         for j in range(math.ceil(n_c / b_c)):
-            out[i * b_r:(i + 1) * b_r] += kernel_f(
-                X[i * b_r:(i + 1) * b_r],
-                Z[j * b_c:(j + 1) * b_c]) @ v[j * b_c:(j + 1) * b_c]
+            out[i * b_r : (i + 1) * b_r] += (
+                kernel_f(X[i * b_r : (i + 1) * b_r], Z[j * b_c : (j + 1) * b_c])
+                @ v[j * b_c : (j + 1) * b_c]
+            )
 
     return out

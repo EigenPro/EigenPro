@@ -7,8 +7,7 @@ class ArrayDataset(torch_data.Dataset):
     """A custom dataset to handle data along with their IDs and optional ID ranges."""
 
     def __init__(self, data_x, data_y, id_start=None, id_end=None):
-        assert len(data_x) == len(data_y),\
-            "Data_x and Data_y must have the same length"
+        assert len(data_x) == len(data_y), "Data_x and Data_y must have the same length"
 
         if isinstance(data_x, np.ndarray):
             data_x = torch.tensor(data_x, dtype=torch.float32)
@@ -23,7 +22,7 @@ class ArrayDataset(torch_data.Dataset):
             raise ValueError("id_start must be non-negative")
         if id_end is not None and id_end < 0:
             raise ValueError("id_end must be non-negative")
-        
+
         # Check if id_start is greater than id_end
         if id_start is not None and id_end is not None and id_start >= id_end:
             raise ValueError("id_start must be less than id_end")
@@ -42,5 +41,8 @@ class ArrayDataset(torch_data.Dataset):
         return len(self.data_x)
 
     def __getitem__(self, index):
-        return self.data_x[index], self.data_y[index], torch.tensor(
-            self.ids[index], dtype=torch.int64)
+        return (
+            self.data_x[index],
+            self.data_y[index],
+            torch.tensor(self.ids[index], dtype=torch.int64),
+        )

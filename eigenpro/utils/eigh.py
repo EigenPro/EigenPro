@@ -1,4 +1,5 @@
-'''Utility functions for performing fast SVD.'''
+"""Utility functions for performing fast SVD."""
+
 import torch
 import numpy as np
 import scipy as sp
@@ -28,12 +29,10 @@ class EigenSystem:
             AssertionError: If the number of eigenvalues is less than the
                 number of eigenvectors.
         """
-        assert(len(values) == vectors.shape[1] or
-               len(values) == 1 + vectors.shape[1])
+        assert len(values) == vectors.shape[1] or len(values) == 1 + vectors.shape[1]
         self._values = values
         self._vectors = vectors
         self._num = min(len(values), len(vectors))
-
 
     @property
     def min_value(self) -> float:
@@ -47,7 +46,7 @@ class EigenSystem:
     @property
     def size(self) -> int:
         """Gets the size of the eigensystem.
-        
+
         Returns:
             int: The number of eigenvalues and eigenvectors.
         """
@@ -69,7 +68,8 @@ class EigenSystem:
         Returns:
             np.ndarray: Array of eigenvectors.
         """
-        return self._vectors[:,:self.size]
+        return self._vectors[:, : self.size]
+
 
 def top_q_eig(matrix: torch.Tensor, q: int) -> EigenSystem:
     """Finds the top `q` eigenvalues and eigenvectors of matrix.
@@ -97,7 +97,8 @@ def top_q_eig(matrix: torch.Tensor, q: int) -> EigenSystem:
 
     n_sample = matrix.shape[0]
     eigenvalues, eigenvectors = sp.linalg.eigh(
-        matrix, eigvals=(n_sample - q-1, n_sample - 1))
+        matrix, subset_by_index=(n_sample - q - 1, n_sample - 1)
+    )
     eigenvalues = torch.from_numpy(np.flip(eigenvalues).copy()).to(device)
     eigenvectors = torch.from_numpy(np.fliplr(eigenvectors).copy()).to(device)
 

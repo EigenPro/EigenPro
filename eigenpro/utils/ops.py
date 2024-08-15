@@ -8,9 +8,10 @@ class ParallelMatrixOperator:
 
     @staticmethod
     def compute_kernel_matrix(
-            kernel: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
-            batch_x: List[torch.Tensor],
-            chunks_z: List[torch.Tensor]) -> List[torch.Tensor]:
+        kernel: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+        batch_x: List[torch.Tensor],
+        chunks_z: List[torch.Tensor],
+    ) -> List[torch.Tensor]:
         """Evaluates a kernel function in parallel.
 
         Args:
@@ -30,9 +31,9 @@ class ParallelMatrixOperator:
         return [job.result() for job in kernel_matrices]
 
     @staticmethod
-    def mat_vec_mul(matrix: torch.Tensor,
-                   vector: torch.Tensor,
-                   device: str) -> torch.Tensor:
+    def mat_vec_mul(
+        matrix: torch.Tensor, vector: torch.Tensor, device: str
+    ) -> torch.Tensor:
         """Multiplies a matrix with a vector.
 
         Args:
@@ -47,9 +48,8 @@ class ParallelMatrixOperator:
 
     @staticmethod
     def parallel_mat_vec_mul(
-            matrix_list: List[torch.Tensor],
-            vector_list: List[torch.Tensor],
-            device: str) -> torch.Tensor:
+        matrix_list: List[torch.Tensor], vector_list: List[torch.Tensor], device: str
+    ) -> torch.Tensor:
         """Performs matrix-vector multiplication in parallel.
 
         Args:
@@ -63,8 +63,7 @@ class ParallelMatrixOperator:
         with ThreadPoolExecutor() as executor:
             products = [
                 executor.submit(
-                    ParallelMatrixOperator.mat_vec_mul,
-                    inputs[0], inputs[1], device
+                    ParallelMatrixOperator.mat_vec_mul, inputs[0], inputs[1], device
                 )
                 for inputs in zip(matrix_list, vector_list)
             ]
