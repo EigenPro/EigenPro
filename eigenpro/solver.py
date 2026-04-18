@@ -18,7 +18,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         n_data_pcd_nyst_samples=3_000, n_model_pcd_nyst_samples=3_000,
         n_data_pcd_eigenvals=150, n_model_pcd_eigenvals =150,
         tmp_centers_coeff=2, wandb=None, T=None, epochs=1,
-        accumulated_gradients=True):
+        accumulated_gradients=True, num_workers=1):
     """Fit a kernel model using EigenPro method.
 
     Args:
@@ -41,6 +41,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
         epochs(int): number of epochs to run over the training samples
         accumulated_gradients: It should be true if Z and X are different, but if they are the same set this to False
                                for faster convergence.
+        num_workers(int): how many subprocesses to use for data loading. 0 means that the data will be loaded in the main process.
 
     Returns:
         model(object): the trained model will be returned
@@ -143,7 +144,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
 
 
             if wandb is not None:
-                loss_test, accu_test = metrics.get_performance(model, x, y)
+                loss_test, accu_test = metrics.get_performance(model, x, y, num_workers=num_workers)
                 wandb.log({'test loss': loss_test.item(),
                            'test accuracy': accu_test})
 
@@ -152,7 +153,7 @@ def fit(model, X, Y, x, y, device, dtype=torch.float32, kernel=None,
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
-        loss_test, accu_test = metrics.get_performance(model, x, y)
+        loss_test, accu_test = metrics.get_performance(model, x, y, num_workers=num_workers)
         # Print epoch summary using tabulate
         epoch_summary = [
             ["Test Loss", f"{loss_test:.10f}"],
